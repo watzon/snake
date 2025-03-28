@@ -165,6 +165,7 @@ export function createNewSnake(id: string, gameState: GameState): Snake {
         moveProgress: 0,
         isAI: false, // Newly created snakes are human by default
         lastActivityTime: Date.now(), // Initialize activity time
+        quitRequested: false, // Initialize quitRequested flag
     };
 }
 

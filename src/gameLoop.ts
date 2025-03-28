@@ -4,9 +4,11 @@ import type { ServerWebSocket } from 'bun';
 import {
     GRID_SIZE, MAP_WIDTH, MAP_HEIGHT, TICK_RATE, POWERUP_DURATION,
     MAX_LENGTH_NO_SLOWDOWN, MAX_SLOWDOWN_FACTOR, SLOWDOWN_PER_SEGMENT,
-    BOUNDARY_MARGIN, AFK_TIMEOUT // Added AFK_TIMEOUT
+    BOUNDARY_MARGIN, AFK_TIMEOUT, // Added AFK_TIMEOUT
+    // AI Constants
+    MIN_AI_SNAKES, MAX_AI_SNAKES, AI_SPAWN_CHECK_INTERVAL, AI_SPAWN_CHANCE_PER_CHECK, AI_QUIT_CHANCE_PER_TICK
 } from './constants';
-import { resetSnake, spawnFood, spawnPowerup, broadcast } from './utils';
+import { createNewSnake, resetSnake, spawnFood, spawnPowerup, broadcast } from './utils';
 
 // Define ClientMap type based on usage
 type ClientMap = Map<string, ServerWebSocket<WebSocketData>>;
@@ -18,11 +20,45 @@ function distanceSq(p1: { x: number, y: number }, p2: { x: number, y: number }):
     return dx * dx + dy * dy;
 }
 
+// Helper function for AI name generation (e.g., XAIY)
+function generateAiName(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let name = '';
+    name += chars[Math.floor(Math.random() * chars.length)]; // First initial
+    name += 'AI';
+    name += chars[Math.floor(Math.random() * chars.length)]; // Last initial
+    return name;
+}
+
+
+let aiSpawnCheckCounter = 0; // Counter for AI spawn checks
+
 
 export function gameTick(gameState: GameState, clients: ClientMap) {
     const snakesToReset: Snake[] = [];
     const snakesToRemove: string[] = []; // List of IDs to remove completely
     const collisions: { snakeA: Snake; snakeB: Snake }[] = [];
+
+    // --- AI Spawning Logic ---
+    aiSpawnCheckCounter++;
+    if (aiSpawnCheckCounter >= AI_SPAWN_CHECK_INTERVAL) {
+        aiSpawnCheckCounter = 0; // Reset counter
+        const currentAiCount = Object.values(gameState.snakes).filter(s => s.isAI && !s.isDead).length;
+
+        // Spawn if below min OR (below max AND random chance passes)
+        const shouldSpawn = currentAiCount < MIN_AI_SNAKES ||
+                           (currentAiCount < MAX_AI_SNAKES && Math.random() < AI_SPAWN_CHANCE_PER_CHECK);
+
+        if (shouldSpawn) {
+            const newId = `ai_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+            const newAiSnake = createNewSnake(newId, gameState);
+            newAiSnake.isAI = true;
+            newAiSnake.username = generateAiName(); // Use new naming function
+            gameState.snakes[newId] = newAiSnake;
+            console.log(`Spawned new AI snake: ${newAiSnake.username} (ID: ${newId})`);
+        }
+    }
+    // --- End AI Spawning Logic ---
 
     // 1. Update Directions (apply pending direction if valid)
     Object.values(gameState.snakes).forEach(snake => {
@@ -77,6 +113,17 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
         }
         // --- End AFK Check ---
 
+        // --- AI Random Quit Check ---
+        // Recalculate count here to ensure accuracy before quitting
+        const currentAiCountForQuitCheck = Object.values(gameState.snakes).filter(s => s.isAI && !s.isDead).length;
+        if (snake.isAI && !snake.isDead && currentAiCountForQuitCheck > MIN_AI_SNAKES && Math.random() < AI_QUIT_CHANCE_PER_TICK) {
+            console.log(`AI Snake ${snake.id} (${snake.username}) decided to quit (Current AI: ${currentAiCountForQuitCheck}).`);
+            snake.quitRequested = true;
+            // No need to push to snakesToRemove here, the existing Quit Check logic handles it
+            return; // Stop processing this snake for this tick
+        }
+        // --- End AI Random Quit Check ---
+
         // --- AI Logic (Basic Food Seeking) ---
         if (snake.isAI && !snake.isDead) {
             let bestDirection: Direction | undefined = undefined;
@@ -94,7 +141,7 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                     }
                 });
 
-                
+
                                 if (closestFood) {
                                     // Assign to a new constant inside the block to help type inference
                                     const targetFood: Point = closestFood;
@@ -176,11 +223,11 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
 
         let ateFoodThisTick = false;
         let enteredPortal = false; // Declare here to check after the loop
- 
+
         // --- Perform Moves ---
         for (let i = 0; i < movesThisTick; i++) {
             if (snake.isDead) break;
- 
+
             const currentHead = { ...snake.body[snake.body.length - 1] };
             let nextHead = { ...currentHead };
 
@@ -190,13 +237,13 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 case 'left':  nextHead.x -= GRID_SIZE; break;
                 case 'right': nextHead.x += GRID_SIZE; break;
             }
- 
+
             // Portal collision check (MUST BE BEFORE WALL CHECK)
             // NOTE: We still use the global `enteredPortal` flag declared outside this loop
             for (const portal of gameState.portals) {
                 const headCenterX = nextHead.x + GRID_SIZE / 2;
                 const headCenterY = nextHead.y + GRID_SIZE / 2; // Consider center
- 
+
                 if (
                     headCenterX >= portal.x &&
                     headCenterX <= portal.x + portal.width &&
@@ -211,15 +258,22 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                             payload: { url: portal.destinationUrl } // Use the portal's specific destination
                         }));
                     }
-                    // Snake entered portal, stop processing its moves for this tick
+                    // Snake entered portal, remove from game and stop processing
                     enteredPortal = true; // Set the flag declared outside the loop
-                    break; // Exit this inner portal checking loop
+
+                    // Mark the snake for removal after the main loop finishes
+                    if (!snakesToRemove.includes(snake.id)) {
+                         snakesToRemove.push(snake.id);
+                         console.log(`Snake ${snake.id} marked for removal after entering portal.`);
+                    }
+                    // Keep the break to exit the inner portal check loop for this move step
+                    break;
                 }
             }
- 
+
             // If snake entered portal this step, skip wall check and further movement this step
             if (enteredPortal) break; // Exit the outer 'for (let i = 0; ...)' loop
- 
+
             // Wall collision check (using BOUNDARY_MARGIN) - ONLY if portal not entered
             if (nextHead.x < BOUNDARY_MARGIN || nextHead.x >= MAP_WIDTH - BOUNDARY_MARGIN ||
                 nextHead.y < BOUNDARY_MARGIN || nextHead.y >= MAP_HEIGHT - BOUNDARY_MARGIN) {
@@ -243,7 +297,7 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
 
             // If snake died (wall) OR entered portal, stop processing moves for this snake this tick
             if (snake.isDead || enteredPortal) break; // Exit the 'for (let i = 0; ...)' loop
- 
+
             // Only push head if not dead/portaled AND didn't enter portal this step
             snake.body.push(nextHead);
 
@@ -395,9 +449,10 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
     // 8.5 Remove AFK Snakes (Do this *before* resetting others)
     snakesToRemove.forEach(snakeId => {
         delete gameState.snakes[snakeId];
+        clients.delete(snakeId); // Also remove the client connection
         // Optional: Could broadcast a specific 'playerKicked' message here if needed
-        // broadcast({ type: 'playerKicked', payload: { clientId: snakeId, reason: 'AFK' } }, clients);
-        console.log(`Removed snake ${snakeId} from game state.`);
+        // broadcast({ type: 'playerKicked', payload: { clientId: snakeId, reason: 'Portal/AFK/Quit' } }, clients); // Updated reason example
+        console.log(`Removed snake ${snakeId} and client from game state.`);
     });
 
     // 9. Reset Dead Snakes (Snakes in snakesToReset that weren't removed)

@@ -27,3 +27,10 @@ export const AFK_TIMEOUT = 60 * 1000; // 60 seconds inactivity threshold
 export const NODE_PING_INTERVAL = 30 * 1000; // How often nodes check/clean up servers
 export const NODE_REGISTER_INTERVAL = 60 * 1000; // How often game servers register with nodes
 export const NODE_TIMEOUT = NODE_REGISTER_INTERVAL * 2.5; // Remove node if not seen for this long
+
+// --- AI Constants ---
+export const MIN_AI_SNAKES = 1; // Minimum number of AI snakes to maintain
+export const MAX_AI_SNAKES = 5; // Maximum number of AI snakes allowed
+export const AI_SPAWN_CHECK_INTERVAL = 500; // Check every 500 ticks (e.g., 50 seconds if TICK_RATE=100)
+export const AI_SPAWN_CHANCE_PER_CHECK = 0.1; // 10% chance to spawn an AI if below max during a check
+export const AI_QUIT_CHANCE_PER_TICK = 0.00005; // Very small chance for an AI to quit each tick (adjust to balance spawn rate)

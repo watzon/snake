@@ -43,7 +43,7 @@ export interface Snake {
     pendingDirection?: Direction;
     moveProgress: number;
     lastActivityTime: number; // Timestamp (ms) of the last received input
-    quitRequested?: boolean; // Flag to mark snake for removal on next tick
+    quitRequested: boolean; // Flag to mark snake for removal on next tick
     isAI: boolean; // Flag to indicate if the snake is controlled by AI
 }
 

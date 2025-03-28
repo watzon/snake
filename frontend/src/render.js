@@ -4,9 +4,8 @@ import { lerp } from './utils.js'; // lerp is needed for snake interpolation
 // Needs: ctx, MAP_WIDTH, MAP_HEIGHT, GRID_SIZE, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, cameraX, cameraY
 // Needs game state: latestGameState, previousGameState
 export function drawBackground(ctx, VIEWPORT_WIDTH, VIEWPORT_HEIGHT) {
-    const time = Date.now() / 6000;
-    const hue = (time * 25) % 360;
-    ctx.fillStyle = `hsl(${hue}, 20%, 10%)`; // Dark base color
+    // Use a solid dark background color
+    ctx.fillStyle = '#2D3748'; // Dark slate gray
     ctx.fillRect(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
 }
 
