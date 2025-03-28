@@ -30,7 +30,8 @@ export class Game {
     isSpectating = true;
     spectatorFetchInterval = null;
 
-    // Input State (if needed, e.g., for debouncing)
+    // Input State & Prediction
+    predictedDirection = null; // Store the locally predicted direction immediately on input
 
     // Loop State
     frameCounter = 0;
@@ -121,7 +122,8 @@ export class Game {
             drawPowerup(ctx, powerup, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
         });
         Object.keys(this.latestGameState.snakes).forEach(snakeId => {
-            drawSnake(ctx, snakeId, interpolationFactor, this.latestGameState, this.previousGameState, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
+            // Pass clientId and predictedDirection to drawSnake
+            drawSnake(ctx, snakeId, this.clientId, this.predictedDirection, interpolationFactor, this.latestGameState, this.previousGameState, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
         });
         // Draw Portals
         drawPortals(ctx, this.latestGameState.portals, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE, this.MAP_HEIGHT); // Pass MAP_HEIGHT
@@ -194,19 +196,43 @@ export class Game {
 
     // --- Input Handler ---
     handleKeyDown(event) {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.clientId || !this.latestGameState) {
-            return;
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.clientId || !this.latestGameState || this.isSpectating) {
+            return; // Ignore input if not connected, no client ID, no state, or spectating
         }
-        let direction = null;
+
+        const mySnake = this.latestGameState.snakes[this.clientId];
+        if (!mySnake || mySnake.isDead) return; // Ignore input if snake doesn't exist or is dead
+
+        let requestedDirection = null;
         switch (event.key) {
-            case 'ArrowUp': case 'w': direction = 'up'; break;
-            case 'ArrowDown': case 's': direction = 'down'; break;
-            case 'ArrowLeft': case 'a': direction = 'left'; break;
-            case 'ArrowRight': case 'd': direction = 'right'; break;
-            default: return;
+            case 'ArrowUp': case 'w': requestedDirection = 'up'; break;
+            case 'ArrowDown': case 's': requestedDirection = 'down'; break;
+            case 'ArrowLeft': case 'a': requestedDirection = 'left'; break;
+            case 'ArrowRight': case 'd': requestedDirection = 'right'; break;
+            default: return; // Ignore other keys
         }
-        this.ws.send(JSON.stringify({ type: 'directionChange', payload: direction }));
-        event.preventDefault();
+
+        // --- Client-Side Prediction ---
+        // Check if the requested direction is valid based on the *current* server direction (or predicted if needed)
+        const currentServerDirection = mySnake.direction; // Use the last known server direction
+        let isValidMove = false;
+        if (
+            (requestedDirection === 'up' && currentServerDirection !== 'down') ||
+            (requestedDirection === 'down' && currentServerDirection !== 'up') ||
+            (requestedDirection === 'left' && currentServerDirection !== 'right') ||
+            (requestedDirection === 'right' && currentServerDirection !== 'left')
+        ) {
+            isValidMove = true;
+        }
+
+        if (isValidMove) {
+            this.predictedDirection = requestedDirection; // Update predicted direction immediately
+            // Send the direction change to the server
+            this.ws.send(JSON.stringify({ type: 'directionChange', payload: requestedDirection }));
+        }
+        // --- End Prediction ---
+
+        event.preventDefault(); // Prevent default browser action (scrolling)
     }
 
     // --- Spectator Mode ---

@@ -24,7 +24,7 @@ export function drawMapBoundary(ctx, MAP_WIDTH, MAP_HEIGHT, GRID_SIZE) {
     );
 }
 
-export function drawSnake(ctx, snakeId, interpolationFactor, latestGameState, previousGameState, cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GRID_SIZE) {
+export function drawSnake(ctx, snakeId, clientId, predictedDirection, interpolationFactor, latestGameState, previousGameState, cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GRID_SIZE) { // Added clientId, predictedDirection
     const snakeLatest = latestGameState?.snakes[snakeId];
     if (!snakeLatest || snakeLatest.isDead || snakeLatest.body.length === 0) return;
 
@@ -109,7 +109,11 @@ export function drawSnake(ctx, snakeId, interpolationFactor, latestGameState, pr
     let eye1X, eye1Y, eye2X, eye2Y;
     const eyeOffset = snakeLatest.width * 0.15;
     const eyeSize = snakeLatest.width * 0.1;
-    switch (snakeLatest.direction) {
+    
+    // Use predicted direction for own snake, otherwise use server direction
+    const directionToUse = (snakeId === clientId && predictedDirection) ? predictedDirection : snakeLatest.direction;
+
+    switch (directionToUse) {
         case 'up':    eye1X = headRenderX - eyeOffset; eye1Y = headRenderY - eyeOffset; eye2X = headRenderX + eyeOffset; eye2Y = headRenderY - eyeOffset; break;
         case 'down':  eye1X = headRenderX - eyeOffset; eye1Y = headRenderY + eyeOffset; eye2X = headRenderX + eyeOffset; eye2Y = headRenderY + eyeOffset; break;
         case 'left':  eye1X = headRenderX - eyeOffset; eye1Y = headRenderY - eyeOffset; eye2X = headRenderX - eyeOffset; eye2Y = headRenderY + eyeOffset; break;

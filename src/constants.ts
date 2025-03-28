@@ -6,7 +6,7 @@ export const BOUNDARY_MARGIN = GRID_SIZE; // Space between playable area and vis
 // Quadruple the previous larger size (2400x1800 -> 4800x3600)
 export const MAP_WIDTH = 4800; // Previous 2400 * 2
 export const MAP_HEIGHT = 3600; // Previous 1800 * 2
-export const TICK_RATE = 100;
+export const TICK_RATE = 100; // Reverted back from 80ms
 export const INITIAL_SNAKE_LENGTH = 3;
 // Scale food count roughly with area (4x)
 export const FOOD_COUNT = 300; // Previous 75 * 4
