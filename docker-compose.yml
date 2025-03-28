@@ -1,0 +1,33 @@
+# docker-compose.yml
+
+version: '3.8' # Specify compose file version
+
+services:
+  # Define the snake game service
+  snake-game:
+    # Build the image from the Dockerfile in the current directory (.)
+    # Note: For development, consider using target stages if your Dockerfile
+    # has specific development setups.
+    build: .
+    # Assign a name to the container (optional but helpful)
+    container_name: snake_game_server
+    # Map port 3000 on the host machine to port 3000 inside the container
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+      # If using Vite dev server, you might need to map its port too, e.g.:
+      # - "5173:5173"
+    # Define the restart policy
+    # unless-stopped: restarts the container unless it was explicitly stopped
+    restart: unless-stopped
+    # Mount local code directories for development live-reloading
+    # This allows changes in your local src/ and frontend/ to be seen inside the container.
+    # Note: node_modules is explicitly defined as an anonymous volume to prevent
+    # the host's node_modules (if any) from overwriting the container's.
+    volumes:
+      - ./src:/app/src
+      - ./frontend:/app/frontend
+      - /app/node_modules # Prevents host node_modules from overwriting container's
+    # Optional: Add environment variables if your app needed them
+    # environment:
+    #   - NODE_ENV=development # Often set to development for compose
+    #   - PORT=3000

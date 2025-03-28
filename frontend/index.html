@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <!-- Prevent zoom -->
+    <title>Multiplayer Snake</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+    <!-- Username Modal -->
+    <div id="usernameModal" class="modal">
+        <div class="modal-content">
+            <h2>Enter Your Initials</h2>
+            <p>Choose 4 characters for your snake name:</p>
+            <input type="text" id="usernameInput" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false">
+            <p id="usernameError" class="error-text"></p>
+
+            <!-- Server Indicator (Placed before Start button) -->
+            <div id="serverIndicator" class="server-indicator" title="Click to select server">
+                <span class="server-flag">🌐</span> <!-- Placeholder icon -->
+                <span class="server-id">Connecting...</span>
+                <span class="server-ping">-- ms</span>
+            </div>
+            <!-- End Server Indicator -->
+
+            <button id="startGameButton" disabled>Start Game</button> <!-- Initially disabled -->
+        </div>
+    </div>
+
+    <!-- Canvas will be positioned absolutely -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Server List Modal (Re-added, Initially Hidden) -->
+    <div id="serverListModal" class="modal hidden"> <!-- Add 'hidden' class -->
+        <div class="modal-content server-list-content">
+            <h2>Select Server</h2>
+            <div class="server-table-container">
+                <table id="serverListTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Address</th>
+                            <th>Players</th>
+                            <th>Ping</th>
+                            <!-- <th>Country</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be added by JS -->
+                        <tr><td colspan="4">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+             <div class="modal-buttons"> <!-- Button wrapper -->
+                 <button id="refreshServerListModalButton" title="Refresh Server List">🔄 Refresh</button>
+                <button id="closeServerListModalButton">Close</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- UI elements positioned absolutely -->
+    <div id="ui">
+        <div id="score">Score: 0</div>
+        <div id="message">Connecting...</div>
+        <div id="ping">Ping: -- ms</div>
+    </div>
+
+     <div id="leaderboard">
+        <h2>Top Snakes</h2> <!-- Changed title slightly -->
+        <ul id="leaderboard-list"></ul>
+    </div>
+
+    <!-- Mini-map Canvas -->
+    <canvas id="minimapCanvas"></canvas>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>

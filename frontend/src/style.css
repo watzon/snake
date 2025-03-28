@@ -1,0 +1,378 @@
+/* public/style.css */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent scrollbars */
+    background-color: #1a1d23; /* Background for areas outside canvas (if any) */
+    font-family: sans-serif;
+    color: #eee;
+}
+
+#gameCanvas {
+    display: block; /* Remove extra space */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%; /* Take full width */
+    height: 100%; /* Take full height */
+    /* border: none; Remove border or keep if desired */
+    /* background-color is handled by drawing loop */
+    z-index: 1; /* Behind UI elements */
+}
+
+#ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em; /* Slightly smaller default */
+    z-index: 10;
+    pointer-events: none; /* Allow clicks/touches to go through to canvas */
+}
+
+#message {
+    margin-top: 5px;
+    font-style: italic;
+    color: #ffcc00;
+}
+
+#ping {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #88ff88;
+}
+
+#leaderboard {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 8px 12px; /* Smaller padding */
+    border-radius: 6px;
+    max-width: 180px; /* Limit width */
+    max-height: 200px; /* Limit height */
+    overflow-y: auto;
+    z-index: 10;
+    font-size: 0.8em; /* Smaller font */
+    pointer-events: none; /* Allow clicks/touches to go through */
+}
+
+#leaderboard h2 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    text-align: center;
+    color: #61dafb;
+    font-size: 1.1em; /* Adjusted size */
+    border-bottom: 1px solid #61dafb;
+    padding-bottom: 3px;
+}
+
+#leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#leaderboard-list li {
+    padding: 3px 0; /* Reduced padding */
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed #555;
+}
+#leaderboard-list li:last-child {
+    border-bottom: none;
+}
+
+#leaderboard-list .player-name {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Prevent long names breaking layout */
+    margin-right: 5px;
+}
+#leaderboard-list .player-score {
+    color: #ffcc00;
+    flex-shrink: 0; /* Prevent score from shrinking */
+}
+
+/* Mini-map Styles */
+#minimapCanvas {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 200px; /* Adjust size as needed */
+    height: 200px;
+    border: 1px solid #555; /* Add a border */
+    background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent background */
+    z-index: 10; /* Same as leaderboard */
+    pointer-events: none; /* Ignore clicks */
+}
+
+
+/* Animations (keep if desired, not strictly needed for layout) */
+@keyframes pulse { /* ... */ }
+@keyframes spin { /* ... */ }
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    /* position: relative; */ /* No longer needed for indicator */
+    display: flex; /* Use Flexbox */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+    gap: 1rem; /* Consistent spacing between items */
+    background-color: #1a1d23;
+    padding: 2rem;
+    /* padding-bottom: 3.5rem; */ /* Padding now controlled by flex gap */
+    border-radius: 10px;
+    border: 2px solid #61dafb;
+    /* text-align: center; */ /* Alignment handled by flex */
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content h2 {
+    color: #61dafb;
+    /* margin-bottom: 1rem; */ /* Use flex gap */
+    margin-top: 0; /* Remove default top margin */
+}
+
+.modal-content p {
+    color: #eee;
+    /* margin-bottom: 1rem; */ /* Use flex gap */
+    margin-top: 0; /* Remove default top margin */
+    margin-bottom: 0; /* Remove default bottom margin */
+}
+
+#usernameInput {
+    background-color: #2a2d33;
+    border: 2px solid #61dafb;
+    color: #fff;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    width: 120px;
+    text-align: center;
+    border-radius: 5px;
+    /* margin-bottom: 1rem; */ /* Use flex gap */
+    text-transform: uppercase;
+}
+
+#usernameInput:focus {
+    outline: none;
+    border-color: #00ff00;
+}
+
+
+/* Server Indicator (Now a flex item) */
+.server-indicator {
+    /* position: absolute; bottom: 1rem; left: 1rem; */ /* Removed absolute */
+    background-color: rgba(42, 45, 51, 0.8);
+    padding: 0.4rem 0.8rem;
+    border-radius: 5px;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 0.85em;
+    cursor: pointer;
+    display: inline-flex; /* Keep inline-flex for internal alignment */
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s, border-color 0.2s;
+    /* z-index: 10; */ /* No longer needed */
+    /* margin-top/bottom handled by flex gap */
+    order: 10; /* Push to bottom of flex container */
+    margin-top: auto; /* Push other items up */
+    align-self: flex-start; /* Align to the left */
+}
+
+.server-indicator:hover {
+    background-color: rgba(58, 61, 67, 0.9);
+    border-color: #61dafb;
+}
+
+.server-indicator .server-flag {
+    font-size: 1.1em;
+    /* TODO: Replace with actual flag images/library later */
+}
+/* Server List Modal */
+/* Use existing .modal styles, add specific adjustments */
+.server-list-content {
+    max-width: 600px; /* Wider modal for table */
+    width: 90%;
+}
+
+.server-list-content h2 {
+    color: #61dafb;
+    margin-bottom: 1rem;
+}
+
+.server-table-container {
+    max-height: 60vh; /* Limit height and allow scrolling */
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    border: 1px solid #444;
+    border-radius: 5px;
+}
+
+#serverListTable {
+    width: 100%;
+    border-collapse: collapse;
+    color: #eee;
+}
+
+#serverListTable th, #serverListTable td {
+    padding: 10px 15px; /* Slightly more padding */
+    text-align: left;
+    border-bottom: 1px solid #333; /* Darker border */
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+#serverListTable th { /* Style header separately */
+    color: #61dafb; /* Header text color */
+}
+
+#serverListTable thead th {
+    background-color: #20232a; /* Darker header background */
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom-width: 2px; /* Thicker bottom border for header */
+     border-bottom-color: #61dafb;
+}
+
+#serverListTable tbody tr {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+#serverListTable tbody tr:hover {
+    background-color: #2a2d33; /* Match input background */
+}
+
+#serverListTable tbody tr.selected {
+    background-color: #004e70; /* Slightly adjusted highlight */
+    font-weight: bold;
+}
+#serverListTable tbody tr.selected td {
+    color: #fff; /* Make text white on selection */
+}
+
+
+#serverListTable td:nth-child(3), /* Players */
+#serverListTable td:nth-child(4) { /* Ping */
+    text-align: right;
+    font-feature-settings: "tnum"; /* Tabular nums for alignment */
+}
+
+#serverListTable .ping-good { color: #88ff88; }
+#serverListTable .ping-medium { color: #ffff88; }
+#serverListTable .ping-bad { color: #ff8888; }
+#serverListTable .ping-error { color: #ff4444; font-style: italic; }
+
+/* Style modal buttons container for better layout */
+.server-list-content .modal-buttons {
+    display: flex;
+    justify-content: flex-end; /* Align buttons to the right */
+    gap: 10px;
+    margin-top: 1rem; /* Add space above buttons */
+    border-top: 1px solid #444; /* Add separator line */
+    padding-top: 1rem;
+}
+
+.server-list-content button {
+     background-color: #61dafb;
+    color: #1a1d23;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    /* Remove margins, handled by flex gap */
+    /* margin-top: 0.5rem; */
+    /* margin-left: 10px; */
+}
+
+.server-list-content button:hover {
+    background-color: #00ff00;
+}
+
+/* Specific style for refresh button */
+.server-list-content #refreshServerListModalButton {
+    background-color: #3a3d43; /* Darker background */
+    color: #eee;
+}
+.server-list-content #refreshServerListModalButton:hover {
+     background-color: #4a4d53; /* Slightly lighter dark */
+}
+
+
+.server-list-content #closeServerListModalButton {
+    background-color: #555;
+    color: #eee;
+}
+.server-list-content #closeServerListModalButton:hover {
+    background-color: #777;
+}
+
+    /* TODO: Replace with actual flag images/library later */
+/* Stray brace removed */
+
+.server-indicator .server-id {
+    font-weight: bold;
+    color: #fff;
+}
+
+.server-indicator .server-ping {
+    color: #88ff88;
+}
+
+/* Server List Modal styles removed */
+
+/* Server Selection styles removed */
+.error-text {
+    color: #ff4444 !important;
+    font-size: 0.9rem;
+    flex-shrink: 1;
+}
+
+#startGameButton {
+    background-color: #61dafb;
+    color: #1a1d23;
+    border: none;
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#startGameButton:hover {
+    background-color: #00ff00;
+}
+
+#startGameButton:disabled {
+    background-color: #4a4a4a;
+    cursor: not-allowed;
+}
+
+/* Hide modal when game starts */
+.modal.hidden {
+    display: none;
+}

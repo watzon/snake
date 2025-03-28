@@ -1,0 +1,18 @@
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ESNext", // Use modern JavaScript features
+    "module": "ESNext", // Use ES modules
+    "moduleResolution": "bundler", // Or "node" depending on preference/setup
+    "strict": true, // Enable strict type checking
+    "esModuleInterop": true, // Allows default imports from commonjs modules
+    "skipLibCheck": true, // Skip type checking of declaration files
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist", // Optional: specify output directory if compiling
+    "jsx": "react-jsx", // Required by Hono, even if not using JSX components directly
+    "jsxImportSource": "hono/jsx",
+    "types": ["bun"] // Include Bun's types
+  },
+  "include": ["src/**/*.ts"], // Which files to include
+  "exclude": ["node_modules"] // Which files to exclude
+}

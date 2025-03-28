@@ -1,0 +1,21 @@
+{
+  "name": "hono-bun-snake",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:backend": "bun run --watch src/index.ts",
+    "dev:frontend": "vite",
+    "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "build:frontend": "vite build",
+    "build": "bun run build:frontend",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "concurrently": "^9.1.2",
+    "vite": "^6.2.3"
+  },
+  "module": "src/index.ts"
+}
