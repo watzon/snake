@@ -22,6 +22,14 @@ let allServersWithPing = [];
 let ws = null; // WebSocket connection instance
 let pingInterval = null;
 let username = null;
+let returnPortalRef = null; // Store the ref for the return portal
+
+// --- Parse URL Params ---
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('portal') === 'true' && urlParams.has('ref')) {
+    returnPortalRef = urlParams.get('ref');
+    console.log("Return portal requested with ref:", returnPortalRef);
+}
 
 // --- Instantiate Core Logic ---
 const game = new Game();
@@ -63,6 +71,14 @@ function handleWebSocketOpen() {
     messageElement.textContent = 'Connected! Joining game...';
     game.setWebSocket(ws); // Link WS to game instance
     pingInterval = setInterval(() => sendPing(ws), 2000);
+
+    // Send return portal info if available
+    if (returnPortalRef) {
+        ws.send(JSON.stringify({
+            type: 'requestReturnPortal',
+            ref: returnPortalRef
+        }));
+    }
 }
 
 function handleWebSocketClose() {

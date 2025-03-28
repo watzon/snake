@@ -124,7 +124,7 @@ export class Game {
             drawSnake(ctx, snakeId, interpolationFactor, this.latestGameState, this.previousGameState, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
         });
         // Draw Portals
-        drawPortals(ctx, this.latestGameState.portals, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
+        drawPortals(ctx, this.latestGameState.portals, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE, this.MAP_HEIGHT); // Pass MAP_HEIGHT
 
         ctx.restore();
 

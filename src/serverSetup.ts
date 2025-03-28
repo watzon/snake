@@ -2,8 +2,9 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import type { WebSocketHandler, ServerWebSocket } from 'bun'; // Import Bun types
-import type { GameState, WebSocketData, ServerInfo, Direction } from './types';
+import type { GameState, WebSocketData, ServerInfo, Direction, Portal } from './types'; // Added Portal
 import { nodeMode } from './config'; // Import only what's needed from config
+import { MAP_WIDTH, MAP_HEIGHT, PORTAL_WIDTH, BOUNDARY_MARGIN } from './constants'; // Import constants needed for portal (Added MAP_WIDTH)
 import { createNewSnake, broadcast } from './utils';
 import { handleServerRegistration } from './nodeDiscovery';
 
@@ -129,6 +130,31 @@ export function createServerSetup(
                         console.warn(`Invalid direction change from ${clientId}: ${direction}`);
                     }
                 }
+
+                if (parsedMessage.type === 'requestReturnPortal') {
+                    const refUrl = parsedMessage.ref;
+                    if (refUrl && typeof refUrl === 'string') {
+                        console.log(`Client ${clientId} requested return portal to ${refUrl}`);
+                        // Check if portal already exists to prevent duplicates
+                        if (!gameState.portals.some(p => p.id === 'return-portal')) {
+                            const newPortal: Portal = {
+                                id: 'return-portal',
+                                x: MAP_WIDTH / 2 - PORTAL_WIDTH / 2, // Center horizontally (CORRECTED: Use MAP_WIDTH)
+                                y: MAP_HEIGHT - BOUNDARY_MARGIN, // Position at the bottom boundary edge
+                                width: PORTAL_WIDTH,
+                                height: BOUNDARY_MARGIN, // Depth matches boundary
+                                text: `Return to ${new URL(refUrl.startsWith('http') ? refUrl : 'https://' + refUrl).hostname}`, // Dynamic text
+                                destinationUrl: refUrl.startsWith('http') ? refUrl : 'https://' + refUrl // Ensure protocol for destination
+                            };
+                            gameState.portals.push(newPortal);
+                            // No need to broadcast immediately, will be sent with next gameState update
+                            console.log('Return portal added to game state.');
+                        }
+                    } else {
+                        console.warn(`Invalid requestReturnPortal message from ${clientId}: Missing or invalid ref.`);
+                    }
+                }
+
             } catch (error) {
                 console.error("Failed to parse message:", message, error);
             }

@@ -112,7 +112,7 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                     if (client) {
                         client.send(JSON.stringify({
                             type: 'portalEnter',
-                            payload: { url: 'https://portal.pieter.com?ref=snake.watzon.tech' }
+                            payload: { url: portal.destinationUrl } // Use the portal's specific destination
                         }));
                     }
                     // Treat entering the portal like dying for removal purposes

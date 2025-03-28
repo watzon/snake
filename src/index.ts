@@ -22,7 +22,8 @@ const gameState: GameState = {
             y: 0, // Position starts at the very top edge
             width: PORTAL_WIDTH, // Use configured width
             height: BOUNDARY_MARGIN, // Height now spans the boundary depth
-            text: "Vibeverse Portal"
+            text: "Vibeverse Portal",
+            destinationUrl: 'https://portal.pieter.com?ref=snake.watzon.tech' // Add destination for the primary portal
         }
     ],
     map: { width: MAP_WIDTH, height: MAP_HEIGHT, gridSize: GRID_SIZE }, // Use updated constants

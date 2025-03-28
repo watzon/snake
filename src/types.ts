@@ -27,6 +27,7 @@ export interface Portal {
   width: number;
   height: number; // Portal depth will match boundary thickness
   text: string;
+  destinationUrl: string; // URL to navigate to on entry
 }
 
 export interface Snake {

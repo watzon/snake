@@ -177,7 +177,7 @@ export function drawPowerup(ctx, powerup, cameraX, cameraY, VIEWPORT_WIDTH, VIEW
     ctx.restore();
 }
 
-export function drawPortals(ctx, portals, cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GRID_SIZE) {
+export function drawPortals(ctx, portals, cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GRID_SIZE, MAP_HEIGHT) { // Added MAP_HEIGHT
     if (!portals || portals.length === 0) return;
 
     portals.forEach(portal => {
@@ -238,11 +238,20 @@ export function drawPortals(ctx, portals, cameraX, cameraY, VIEWPORT_WIDTH, VIEW
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // White, slightly transparent
         ctx.font = `bold ${GRID_SIZE * 0.8}px 'Courier New', Courier, monospace`; // Adjust font size as needed
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'top'; // Align text from its top edge
+        let textY;
+        // Check if it's the bottom portal (assuming it's the only one near the bottom edge)
+        if (portal.y > MAP_HEIGHT / 2) { // Simple check: is it in the bottom half?
+            ctx.textBaseline = 'bottom'; // Align text from its bottom edge
+            textY = renderY - GRID_SIZE * 0.5; // Position text above the portal
+        } else { // Otherwise, assume it's the top portal
+            ctx.textBaseline = 'top'; // Align text from its top edge
+            textY = renderY + renderHeight + GRID_SIZE * 0.5; // Position text below the portal
+        }
+
         ctx.fillText(
             portal.text,
             renderX + renderWidth / 2,
-            renderY + renderHeight // Position text top edge exactly at the bottom of the portal (inside map area)
+            textY
         );
 
         ctx.restore(); // Restore context to remove shadow effect for subsequent draws
@@ -316,8 +325,14 @@ export function drawMiniMap(minimapCtx, minimapCanvas, latestGameState, clientId
             const minimapY = portal.y * scaleY;
             const minimapWidth = portal.width * scaleX;
             const minimapHeight = portal.height * scaleY; // Represent depth on minimap
-            minimapCtx.fillStyle = '#800080'; // Purple color for portal
-            minimapCtx.fillRect(minimapX, minimapY, Math.max(2, minimapWidth), Math.max(1, minimapHeight)); // Ensure minimum size
+
+            // Make it flashier: Cycle lightness with time
+            const time = Date.now() / 300; // Adjust speed of flash
+            const lightness = 50 + Math.sin(time + portal.id.hashCode()) * 20; // Cycle between 30% and 70% lightness
+            minimapCtx.fillStyle = `hsl(300, 100%, ${lightness}%)`; // Bright purple/magenta
+
+            // Make it larger
+            minimapCtx.fillRect(minimapX, minimapY, Math.max(4, minimapWidth), Math.max(2, minimapHeight)); // Ensure larger minimum size
         });
     }
 }
