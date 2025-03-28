@@ -44,8 +44,29 @@ export class Game {
 
     // --- Initialization ---
     init(initialState) {
+        // --- Defensive Checks & Logging for initialState ---
+        if (!initialState || !initialState.initialState) {
+            console.error("Received invalid 'init' payload: Missing initialState object.", initialState);
+            messageElement.textContent = 'Error: Invalid initial data from server.';
+            return; // Stop initialization
+        }
+        if (!initialState.initialState.snakes || typeof initialState.initialState.snakes !== 'object') {
+            console.error("Received invalid 'init' payload: Missing or invalid 'snakes' property.", initialState.initialState);
+            // Attempt recovery by creating an empty snakes object
+            initialState.initialState.snakes = {};
+            console.warn("Attempted recovery: Initialized empty 'snakes' object.");
+            // Consider if you need to show an error or just proceed cautiously
+        }
+        if (!initialState.initialState.map) {
+             console.error("Received invalid 'init' payload: Missing 'map' property.", initialState.initialState);
+             messageElement.textContent = 'Error: Invalid map data from server.';
+             return;
+        }
+        // --- End Defensive Checks ---
+
         this.clientId = initialState.clientId;
         this.latestGameState = initialState.initialState;
+        // Clone only *after* potential recovery
         this.previousGameState = deepClone(this.latestGameState); // Initial clone
         this.lastStateReceiveTime = performance.now();
 
