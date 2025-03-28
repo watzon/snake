@@ -48,7 +48,7 @@ COPY --from=builder /app/src ./src/
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # Copy built frontend assets from builder stage (Output is in /app/dist due to vite.config.js)
-COPY --from=builder /app/dist ./dist/ # Ensure destination ends with /
+COPY --from=builder /app/dist ./dist/
 
 # Expose the port the application listens on
 EXPOSE 3000
