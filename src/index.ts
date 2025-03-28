@@ -55,7 +55,7 @@ const server = Bun.serve({
     }
 } satisfies WebSocketServeOptions<unknown>);
 
-console.log(`Server listening on http://localhost:${server.port} (inside container)`);
+console.log(`Server listening on http://0.0.0.0:${server.port} (inside container)`);
 
 // --- Start Node Discovery Tasks ---
 if (nodeMode) {

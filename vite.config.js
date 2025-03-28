@@ -9,22 +9,22 @@ export default defineConfig({
     proxy: {
       // Proxy WebSocket connections
       '/ws': {
-        target: 'ws://localhost:3000', // Your backend WebSocket server address
+        target: 'ws://0.0.0.0:3000', // Your backend WebSocket server address
         ws: true, // Enable WebSocket proxying
       },
       // Proxy API routes (like /servers, /gamestate)
       // Add any other backend routes that the frontend might call
       '/servers': {
-        target: 'http://localhost:3000',
+        target: 'http://0.0.0.0:3000',
         changeOrigin: true,
       },
        '/gamestate': {
-        target: 'http://localhost:3000',
+        target: 'http://0.0.0.0:3000',
         changeOrigin: true,
       },
       // If node mode is enabled, the /register route also exists
        '/register': {
-        target: 'http://localhost:3000',
+        target: 'http://0.0.0.0:3000',
         changeOrigin: true,
       }
     },

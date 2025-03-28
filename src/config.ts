@@ -65,7 +65,7 @@ if (envAdvertiseAddress !== undefined) {
     advertiseAddress = argAdvertiseAddress;
 }
 
-const ownAddress = advertiseAddress || `localhost:${port}`; // Use provided or default
+const ownAddress = advertiseAddress || `0.0.0.0:${port}`; // Use provided or default
 
 // Generate a short unique ID for this server instance
 const serverId = `srv_${Math.random().toString(16).slice(2, 8)}`;
