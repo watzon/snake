@@ -30,6 +30,20 @@ if (urlParams.get('portal') === 'true' && urlParams.has('ref')) {
     returnPortalRef = urlParams.get('ref');
     console.log("Return portal requested with ref:", returnPortalRef);
 }
+let prefilledUsernameValid = false;
+const usernameParam = urlParams.get('username');
+if (usernameParam) {
+    const processedUsername = usernameParam.trim().slice(0, 4).toUpperCase();
+    if (processedUsername.length === 4 && /^[A-Z]+$/.test(processedUsername)) {
+        username = processedUsername; // Store globally
+        prefilledUsernameValid = true;
+        usernameInput.value = username; // Pre-fill the input field
+        usernameInput.disabled = true; // Optionally disable editing
+        console.log("Prefilled valid username from URL:", username);
+    } else {
+        console.log("Invalid username parameter provided:", usernameParam);
+    }
+}
 
 // --- Instantiate Core Logic ---
 const game = new Game();
@@ -189,6 +203,28 @@ document.addEventListener('keydown', (event) => game.handleKeyDown(event));
 window.addEventListener('resize', debounce(() => game.resize(), 100));
 
 // --- Initial Load ---
-initializeNetworkAndCallbacks(); // Fetch servers, select best, start spectator/loop
+// Wrap initial load in an async function to use await
+async function initialLoad() {
+    await initializeNetworkAndCallbacks(); // Wait for server selection
 
-console.log("Main script initialization complete.");
+    // Check if we can skip the modal
+    if (prefilledUsernameValid && selectedServerInfo) {
+        console.log("Valid prefilled username and server found, skipping modal.");
+        usernameModal.classList.add('hidden'); // Ensure modal is hidden
+        connectToSelectedServer(); // Connect directly
+    } else {
+        // Otherwise, show the modal (unless username is already prefilled but invalid, or no server)
+        if (!prefilledUsernameValid) {
+            usernameModal.classList.remove('hidden');
+            console.log("Showing username modal.");
+        } else if (!selectedServerInfo) {
+            console.log("Prefilled username exists, but waiting for server connection before starting.");
+            // If username is prefilled but server isn't ready, wait.
+            // The onStartGame listener will handle connection once server is selected.
+        }
+    }
+
+    console.log("Main script initialization complete.");
+}
+
+initialLoad(); // Execute the initial load function
