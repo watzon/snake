@@ -35,6 +35,8 @@ RUN bun run build
 # Use a clean base image for the final stage
 FROM oven/bun:1 AS final
 WORKDIR /app
+# Set Node environment to production for the final stage
+ENV NODE_ENV=production
 
 # Copy only necessary production dependencies from base stage
 COPY --from=base /app/node_modules ./node_modules
