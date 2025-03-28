@@ -42,6 +42,7 @@ export interface Snake {
     powerup?: { type: PowerupType; remainingTicks: number };
     pendingDirection?: Direction;
     moveProgress: number;
+    lastActivityTime: number; // Timestamp (ms) of the last received input
 }
 
 export interface GameState {

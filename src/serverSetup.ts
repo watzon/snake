@@ -125,6 +125,7 @@ export function createServerSetup(
                     if (['up', 'down', 'left', 'right'].includes(direction)) {
                          if (snake && !snake.isDead) {
                              snake.pendingDirection = direction as Direction;
+                             snake.lastActivityTime = Date.now(); // Update activity time on valid input
                          }
                     } else {
                         console.warn(`Invalid direction change from ${clientId}: ${direction}`);

@@ -4,7 +4,7 @@ import type { ServerWebSocket } from 'bun';
 import {
     GRID_SIZE, MAP_WIDTH, MAP_HEIGHT, TICK_RATE, POWERUP_DURATION,
     MAX_LENGTH_NO_SLOWDOWN, MAX_SLOWDOWN_FACTOR, SLOWDOWN_PER_SEGMENT,
-    BOUNDARY_MARGIN
+    BOUNDARY_MARGIN, AFK_TIMEOUT // Added AFK_TIMEOUT
 } from './constants';
 import { resetSnake, spawnFood, spawnPowerup, broadcast } from './utils';
 
@@ -13,6 +13,7 @@ type ClientMap = Map<string, ServerWebSocket<WebSocketData>>;
 
 export function gameTick(gameState: GameState, clients: ClientMap) {
     const snakesToReset: Snake[] = [];
+    const snakesToRemove: string[] = []; // List of IDs to remove completely
     const collisions: { snakeA: Snake; snakeB: Snake }[] = [];
 
     // 1. Update Directions (apply pending direction if valid)
@@ -36,6 +37,26 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
     // 2. Calculate Movement & Check Collisions / Apply Effects
     Object.values(gameState.snakes).forEach(snake => {
         if (snake.isDead) return;
+
+        // --- AFK Check ---
+        const now = Date.now();
+        if (now - snake.lastActivityTime > AFK_TIMEOUT) {
+            console.log(`Snake ${snake.id} removed due to inactivity.`);
+            // Send kick message BEFORE removing snake data
+            const client = clients.get(snake.id);
+            if (client) {
+                client.send(JSON.stringify({ type: 'afkKick' }));
+                // Optionally close the connection from server-side after a short delay
+                // setTimeout(() => { if (client.readyState === WebSocket.OPEN) client.close(1000, 'AFK Timeout'); }, 500);
+            }
+            // Mark for complete removal instead of reset
+            if (!snakesToRemove.includes(snake.id)) {
+                 snakesToRemove.push(snake.id);
+            }
+            // Don't set isDead here, just mark for removal and skip processing
+            return; // Stop processing this snake for this tick
+        }
+        // --- End AFK Check ---
 
         // --- Calculate Speed Factor ---
         let baseSpeedFactor = 1.0; // Snake speed is now constant (unless powerup is active)
@@ -83,7 +104,10 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 nextHead.y < BOUNDARY_MARGIN || nextHead.y >= MAP_HEIGHT - BOUNDARY_MARGIN) {
                 if (snake.powerup?.type !== 'invincible') {
                     snake.isDead = true;
-                    if (!snakesToReset.includes(snake)) snakesToReset.push(snake);
+                    // Only add to reset list if not already marked for AFK removal
+                    if (!snakesToRemove.includes(snake.id) && !snakesToReset.includes(snake)) {
+                         snakesToReset.push(snake);
+                    }
                     console.log(`Snake ${snake.id} hit boundary.`);
                     break; // Stop moving this tick
                 } else {
@@ -117,8 +141,9 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                     }
                     // Treat entering the portal like dying for removal purposes
                     snake.isDead = true;
-                    if (!snakesToReset.includes(snake)) {
-                        snakesToReset.push(snake);
+                    // Only add to reset list if not already marked for AFK removal
+                    if (!snakesToRemove.includes(snake.id) && !snakesToReset.includes(snake)) {
+                         snakesToReset.push(snake);
                     }
                     enteredPortal = true;
                     break; // Exit portal loop
@@ -200,7 +225,10 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 if (snake.body[i].x === head.x && snake.body[i].y === head.y) {
                     console.log(`Snake ${snake.id} hit self.`);
                     snake.isDead = true;
-                    if (!snakesToReset.includes(snake)) snakesToReset.push(snake);
+                    // Only add to reset list if not already marked for AFK removal
+                    if (!snakesToRemove.includes(snake.id) && !snakesToReset.includes(snake)) {
+                         snakesToReset.push(snake);
+                    }
                     return;
                 }
             }
@@ -225,7 +253,10 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                         if (!(i === otherSnake.body.length - 1 && head.x === otherHead.x && head.y === otherHead.y)) {
                             console.log(`Snake ${snake.id} hit body of snake ${otherSnake.id}.`);
                             snake.isDead = true;
-                            if (!snakesToReset.includes(snake)) snakesToReset.push(snake);
+                             // Only add to reset list if not already marked for AFK removal
+                            if (!snakesToRemove.includes(snake.id) && !snakesToReset.includes(snake)) {
+                                 snakesToReset.push(snake);
+                            }
                             return;
                         }
                     }
@@ -240,20 +271,47 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
         console.log(`Head-on collision between ${snakeA.id} and ${snakeB.id}`);
         if (snakeA.body.length > snakeB.body.length) {
             console.log(`Snake ${snakeA.id} wins head-on.`);
-            snakeB.isDead = true; if (!snakesToReset.includes(snakeB)) snakesToReset.push(snakeB);
+            snakeB.isDead = true;
+            // Only add to reset list if not already marked for AFK removal
+            if (!snakesToRemove.includes(snakeB.id) && !snakesToReset.includes(snakeB)) {
+                 snakesToReset.push(snakeB);
+            }
         } else if (snakeB.body.length > snakeA.body.length) {
             console.log(`Snake ${snakeB.id} wins head-on.`);
-            snakeA.isDead = true; if (!snakesToReset.includes(snakeA)) snakesToReset.push(snakeA);
+            snakeA.isDead = true;
+            // Only add to reset list if not already marked for AFK removal
+            if (!snakesToRemove.includes(snakeA.id) && !snakesToReset.includes(snakeA)) {
+                 snakesToReset.push(snakeA);
+            }
         } else {
             console.log(`Head-on collision draw. Both die.`);
-            snakeA.isDead = true; if (!snakesToReset.includes(snakeA)) snakesToReset.push(snakeA);
-            snakeB.isDead = true; if (!snakesToReset.includes(snakeB)) snakesToReset.push(snakeB);
+            snakeA.isDead = true;
+            // Only add to reset list if not already marked for AFK removal
+            if (!snakesToRemove.includes(snakeA.id) && !snakesToReset.includes(snakeA)) {
+                 snakesToReset.push(snakeA);
+            }
+            snakeB.isDead = true;
+            // Only add to reset list if not already marked for AFK removal
+            if (!snakesToRemove.includes(snakeB.id) && !snakesToReset.includes(snakeB)) {
+                 snakesToReset.push(snakeB);
+            }
         }
     });
 
-    // 9. Reset Dead Snakes
+    // 8.5 Remove AFK Snakes (Do this *before* resetting others)
+    snakesToRemove.forEach(snakeId => {
+        delete gameState.snakes[snakeId];
+        // Optional: Could broadcast a specific 'playerKicked' message here if needed
+        // broadcast({ type: 'playerKicked', payload: { clientId: snakeId, reason: 'AFK' } }, clients);
+        console.log(`Removed snake ${snakeId} from game state.`);
+    });
+
+    // 9. Reset Dead Snakes (Snakes in snakesToReset that weren't removed)
     snakesToReset.forEach(snake => {
-        resetSnake(snake, gameState);
+        // Check if the snake still exists (wasn't removed for AFK)
+        if (gameState.snakes[snake.id]) {
+             resetSnake(snake, gameState);
+        }
     });
 
     // 10. Spawn new food/powerups

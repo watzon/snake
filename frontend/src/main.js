@@ -137,6 +137,35 @@ function handleWebSocketMessage(message) {
         } else {
             console.error('portalEnter message received without valid URL payload.');
         }
+    } else if (message.type === 'afkKick') {
+        console.log('Received afkKick message from server.');
+        messageElement.textContent = 'Kicked for inactivity. Please re-enter username.';
+        
+        // Prevent automatic reconnect by clearing server info *before* closing
+        const tempServerInfo = selectedServerInfo; // Store temporarily if needed later
+        selectedServerInfo = null;
+
+        if (ws) {
+            ws.onclose = null; // Prevent the default close handler from running reconnection logic
+            ws.close(1000, 'Client received AFK kick'); // Close connection gracefully
+        }
+        // Manually clear interval now since onClose won't run default logic
+        clearInterval(pingInterval);
+        pingInterval = null;
+        ws = null;
+
+        // Restore server info so UI indicator is correct and manual reconnect is possible
+        selectedServerInfo = tempServerInfo;
+
+        // Reset relevant state
+        // game.reset(); // Add a reset method to Game class if needed to clear state
+        game.setWebSocket(null); // Ensures spectator mode might restart if desired
+        usernameModal.classList.remove('hidden'); // Show username modal
+        usernameInput.disabled = false; // Re-enable input
+        usernameInput.focus(); // Focus input
+        // Make sure start button state is correct (disabled until valid username and server)
+        startGameButton.disabled = !selectedServerInfo || !!validateUsername(usernameInput.value);
+
     } else {
         console.log('Unknown message type received in main:', message.type);
     }

@@ -3,6 +3,7 @@
 // --- Game Constants ---
 export const GRID_SIZE = 20;
 export const BOUNDARY_MARGIN = GRID_SIZE; // Space between playable area and visual border
+export const SPAWN_BOUNDARY_MARGIN = GRID_SIZE * 5; // Larger margin for safe spawning
 // Quadruple the previous larger size (2400x1800 -> 4800x3600)
 export const MAP_WIDTH = 4800; // Previous 2400 * 2
 export const MAP_HEIGHT = 3600; // Previous 1800 * 2
@@ -20,6 +21,7 @@ export const PORTAL_WIDTH = 300; // Width of the portal object in game units (In
 export const MAX_LENGTH_NO_SLOWDOWN = 15; // Length up to which there's no slowdown
 export const MAX_SLOWDOWN_FACTOR = 0.5; // Minimum speed factor (e.g., 0.5 means half speed)
 export const SLOWDOWN_PER_SEGMENT = 0.003; // How much speed factor decreases per segment over the threshold
+export const AFK_TIMEOUT = 60 * 1000; // 60 seconds inactivity threshold
 
 // --- Node Discovery Constants ---
 export const NODE_PING_INTERVAL = 30 * 1000; // How often nodes check/clean up servers
