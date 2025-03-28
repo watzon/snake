@@ -162,6 +162,8 @@ export function validateUsername(input) {
 // --- Event Listener Setup ---
 // Needs callbacks for: startGame, refreshServers
 export function initUIEventListeners(callbacks) {
+    usernameInput.focus(); // Focus the input field when listeners are initialized
+
     // Username input handling
     usernameInput.addEventListener('input', (e) => {
         const inputElement = e.target;
@@ -173,6 +175,16 @@ export function initUIEventListeners(callbacks) {
         startGameButton.disabled = !!error; // Disable if username error exists
         if (callbacks.onUsernameValidation) {
              callbacks.onUsernameValidation(!error); // Notify caller if username is valid
+        }
+    });
+
+    // Add listener for Enter key on username input
+    usernameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevent default form submission if inside a form
+            if (!startGameButton.disabled) { // Only click if the button isn't disabled
+                startGameButton.click();
+            }
         }
     });
 

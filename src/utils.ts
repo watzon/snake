@@ -74,7 +74,7 @@ export function createNewSnake(id: string, gameState: GameState): Snake {
         body,
         direction: initialDirection,
         color: getRandomColor(),
-        width: GRID_SIZE * 0.8,
+        width: GRID_SIZE, // Set initial width to GRID_SIZE
         score: 0,
         isDead: false,
         powerup: undefined,
@@ -99,7 +99,7 @@ export function resetSnake(snake: Snake, gameState: GameState) {
     snake.direction = initialDirection;
     snake.pendingDirection = initialDirection;
     snake.color = getRandomColor();
-    snake.width = GRID_SIZE * 0.8;
+    snake.width = GRID_SIZE; // Set reset width to GRID_SIZE
     snake.score = 0;
     snake.isDead = false;
     snake.powerup = undefined;

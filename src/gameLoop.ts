@@ -136,7 +136,7 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
             if (foodIndex !== -1) {
                 ateFoodThisTick = true;
                 snake.score++;
-                snake.width = Math.min(GRID_SIZE * 1.5, snake.width + GRID_SIZE * 0.02);
+                // REMOVED: snake.width = Math.min(GRID_SIZE * 1.5, snake.width + GRID_SIZE * 0.02);
                 gameState.food.splice(foodIndex, 1);
             }
 
@@ -154,7 +154,7 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                             const shrinkAmount = Math.max(1, Math.floor(otherSnake.body.length / 3));
                             if (otherSnake.body.length > shrinkAmount) {
                                 otherSnake.body.splice(0, shrinkAmount);
-                                otherSnake.width = Math.max(GRID_SIZE * 0.5, otherSnake.width * 0.8);
+                                // REMOVED: otherSnake.width = Math.max(GRID_SIZE * 0.5, otherSnake.width * 0.8);
                                 otherSnake.score = Math.max(0, otherSnake.score - shrinkAmount);
                             }
                         }
