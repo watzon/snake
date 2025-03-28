@@ -29,7 +29,7 @@ COPY vite.config.js ./vite.config.js
 # RUN bun run build:backend # Example script name
 
 # Build the frontend
-RUN bun run build # Assuming 'build' script in package.json runs vite build
+RUN bun run build
 
 # --- Final Application Stage ---
 # Use a clean base image for the final stage
@@ -41,14 +41,14 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/package.json ./package.json
 # COPY --from=base /app/bun.lockb ./bun.lockb # Optional: Sometimes needed
 
-# Copy built backend code from builder stage
-COPY --from=builder /app/dist ./dist/
+# Copy backend source code (since we run TS directly with bun)
+# COPY --from=builder /app/dist ./dist/ # Incorrect: This was copying frontend build
 # If no backend build step, copy src instead:
-# COPY --from=builder /app/src ./src/
-# COPY --from=builder /app/tsconfig.json ./tsconfig.json # If needed at runtime
+COPY --from=builder /app/src ./src/
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # Copy built frontend assets from builder stage (Output is in /app/dist due to vite.config.js)
-COPY --from=builder /app/dist ./frontend/dist/
+COPY --from=builder /app/dist ./dist/ # Ensure destination ends with /
 
 # Expose the port the application listens on
 EXPOSE 3000
