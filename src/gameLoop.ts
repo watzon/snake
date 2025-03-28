@@ -1,5 +1,5 @@
 // src/gameLoop.ts
-import type { GameState, Snake, WebSocketData } from './types';
+import type { GameState, Snake, WebSocketData, Direction, Point } from './types';
 import type { ServerWebSocket } from 'bun';
 import {
     GRID_SIZE, MAP_WIDTH, MAP_HEIGHT, TICK_RATE, POWERUP_DURATION,
@@ -10,6 +10,14 @@ import { resetSnake, spawnFood, spawnPowerup, broadcast } from './utils';
 
 // Define ClientMap type based on usage
 type ClientMap = Map<string, ServerWebSocket<WebSocketData>>;
+
+// Helper function to calculate distance squared
+function distanceSq(p1: { x: number, y: number }, p2: { x: number, y: number }): number {
+    const dx = p1.x - p2.x;
+    const dy = p1.y - p2.y;
+    return dx * dx + dy * dy;
+}
+
 
 export function gameTick(gameState: GameState, clients: ClientMap) {
     const snakesToReset: Snake[] = [];
@@ -68,6 +76,78 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
             return; // Stop processing this snake for this tick
         }
         // --- End AFK Check ---
+
+        // --- AI Logic (Basic Food Seeking) ---
+        if (snake.isAI && !snake.isDead) {
+            let bestDirection: Direction | undefined = undefined;
+            if (gameState.food.length > 0) {
+                const head = snake.body[snake.body.length - 1];
+                let closestFood: Point | null = null; // Explicitly type closestFood
+                let minDistance = Infinity;
+
+                // Find closest food
+                gameState.food.forEach(food => {
+                    const dist = distanceSq(head, food);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestFood = food;
+                    }
+                });
+
+                
+                                if (closestFood) {
+                                    // Assign to a new constant inside the block to help type inference
+                                    const targetFood: Point = closestFood;
+                                    const dx = targetFood.x - head.x;
+                                    const dy = targetFood.y - head.y;
+                                    const currentDir = snake.direction; // Use current direction for anti-reversal check
+                    // Determine preferred direction based on largest distance, avoid reversal
+                    if (Math.abs(dx) > Math.abs(dy)) { // Prefer horizontal movement
+                        if (dx > 0 && currentDir !== 'left') {
+                            bestDirection = 'right';
+                        } else if (dx < 0 && currentDir !== 'right') {
+                            bestDirection = 'left';
+                        } else if (dy > 0 && currentDir !== 'up') { // Fallback vertical if horizontal blocked
+                            bestDirection = 'down';
+                        } else if (dy < 0 && currentDir !== 'down') {
+                            bestDirection = 'up';
+                        }
+                    } else { // Prefer vertical movement (or equal)
+                        if (dy > 0 && currentDir !== 'up') {
+                            bestDirection = 'down';
+                        } else if (dy < 0 && currentDir !== 'down') {
+                            bestDirection = 'up';
+                        } else if (dx > 0 && currentDir !== 'left') { // Fallback horizontal if vertical blocked
+                            bestDirection = 'right';
+                        } else if (dx < 0 && currentDir !== 'right') {
+                            bestDirection = 'left';
+                        }
+                    }
+                }
+            }
+
+            // If no food or no valid direction found, continue straight or pick random turn
+            if (!bestDirection) {
+                const possibleTurns: Direction[] = [];
+                if (snake.direction !== 'down') possibleTurns.push('up');
+                if (snake.direction !== 'up') possibleTurns.push('down');
+                if (snake.direction !== 'right') possibleTurns.push('left');
+                if (snake.direction !== 'left') possibleTurns.push('right');
+
+                if (possibleTurns.includes(snake.direction)) {
+                    bestDirection = snake.direction; // Prefer straight
+                } else if (possibleTurns.length > 0) {
+                    bestDirection = possibleTurns[Math.floor(Math.random() * possibleTurns.length)];
+                } else {
+                     // Should not happen if snake has a direction, but fallback
+                    bestDirection = ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)] as Direction;
+                }
+            }
+
+            snake.pendingDirection = bestDirection;
+            snake.lastActivityTime = now; // Keep AI marked as active (use 'now' from AFK check)
+        }
+        // --- End AI Logic ---
 
         // --- Calculate Speed Factor ---
         let baseSpeedFactor = 1.0; // Snake speed is now constant (unless powerup is active)

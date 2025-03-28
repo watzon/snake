@@ -72,18 +72,44 @@ export function createServerSetup(
             clients.set(clientId, ws);
             ws.data = { clientId }; // Attach clientId to the WebSocket session data
 
-            const newSnake = createNewSnake(clientId, gameState); // Pass gameState
+            // --- AI Spawning Logic ---
+            const humanPlayerCount = Object.values(gameState.snakes).filter(snake => !snake.isAI).length;
+            const aiSnakesToSpawn = Math.floor(Math.random() * 3) + 1; // Randomly 1 to 3 AI snakes
+
+            if (humanPlayerCount === 0) {
+                console.log(`First human player joined. Spawning ${aiSnakesToSpawn} AI snakes...`);
+                for (let i = 1; i <= aiSnakesToSpawn; i++) {
+                    const aiId = `ai_${i}_${Date.now()}_${Math.random().toString(16).slice(2)}`; // More unique ID
+
+                    // Generate random XAIY name
+                    const randomChar = () => String.fromCharCode(65 + Math.floor(Math.random() * 26)); // 65 is 'A'
+                    const aiName = `${randomChar()}AI${randomChar()}`;
+
+                    const aiSnake = createNewSnake(aiId, gameState);
+                    aiSnake.isAI = true;
+                    aiSnake.username = aiName; // Use the generated random name
+                    gameState.snakes[aiId] = aiSnake;
+                    broadcast({ type: 'playerJoined', payload: aiSnake }, clients); // Announce AI join
+                    console.log(`Spawned AI snake: ${aiId} with name ${aiName}`);
+                }
+            }
+            // --- End AI Spawning Logic ---
+
+
+            // Create and add the human player's snake
+            const newSnake = createNewSnake(clientId, gameState); // isAI defaults to false
             gameState.snakes[clientId] = newSnake;
 
-            // Send initial state
+            // Send initial state (now includes AI snakes if spawned)
             ws.send(JSON.stringify({
                 type: 'init',
                 payload: {
                     clientId: clientId,
-                    initialState: gameState
+                    initialState: gameState // Send the potentially modified gameState
                 }
             }));
 
+            // Announce the human player joining
              broadcast({ type: 'playerJoined', payload: newSnake }, clients); // Pass clients
         },
          message(ws, message) {
@@ -174,9 +200,14 @@ export function createServerSetup(
 
             console.log(`Client disconnected: ${clientId}`, code, reason);
             clients.delete(clientId);
-            if (gameState.snakes[clientId]) {
+            const snakeToRemove = gameState.snakes[clientId]; // Get snake before deleting
+            if (snakeToRemove) {
+                const wasHuman = !snakeToRemove.isAI; // Check if it was a human player
                 delete gameState.snakes[clientId];
-                broadcast({ type: 'playerLeft', payload: { clientId } }, clients); // Pass clients
+                if (wasHuman) { // Only broadcast if a human player left
+                     broadcast({ type: 'playerLeft', payload: { clientId } }, clients); // Pass clients
+                }
+                // TODO: Add logic here later to remove AI snakes if the last human player leaves?
             }
         }
     };
