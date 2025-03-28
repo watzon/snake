@@ -281,4 +281,7 @@ async function initialLoad() {
     console.log("Main script initialization complete.");
 }
 
-initialLoad(); // Execute the initial load function
+// Wait for the DOM to be fully loaded before running initialization logic
+document.addEventListener('DOMContentLoaded', () => {
+    initialLoad(); // Execute the initial load function
+});
