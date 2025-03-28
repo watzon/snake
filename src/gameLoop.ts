@@ -38,15 +38,15 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
         if (snake.isDead) return;
 
         // --- Calculate Speed Factor ---
-        let baseSpeedFactor = 1.0;
-        const length = snake.body.length;
-        if (length > MAX_LENGTH_NO_SLOWDOWN) {
-            const segmentsOverThreshold = length - MAX_LENGTH_NO_SLOWDOWN;
-            baseSpeedFactor = Math.max(
-                MAX_SLOWDOWN_FACTOR, // Ensure speed doesn't drop below minimum
-                1.0 - segmentsOverThreshold * SLOWDOWN_PER_SEGMENT
-            );
-        }
+        let baseSpeedFactor = 1.0; // Snake speed is now constant (unless powerup is active)
+        // const length = snake.body.length; // SLOWDOWN REMOVED
+        // if (length > MAX_LENGTH_NO_SLOWDOWN) { // SLOWDOWN REMOVED
+        //     const segmentsOverThreshold = length - MAX_LENGTH_NO_SLOWDOWN; // SLOWDOWN REMOVED
+        //     baseSpeedFactor = Math.max( // SLOWDOWN REMOVED
+        //         MAX_SLOWDOWN_FACTOR, // Ensure speed doesn't drop below minimum // SLOWDOWN REMOVED
+        //         1.0 - segmentsOverThreshold * SLOWDOWN_PER_SEGMENT // SLOWDOWN REMOVED
+        //     ); // SLOWDOWN REMOVED
+        // } // SLOWDOWN REMOVED
 
         let effectiveSpeedFactor = baseSpeedFactor;
         if (snake.powerup?.type === 'speed') {
