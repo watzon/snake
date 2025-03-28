@@ -95,11 +95,12 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
         // --- End Speed Calculation ---
 
         let ateFoodThisTick = false;
-
+        let enteredPortal = false; // Declare here to check after the loop
+ 
         // --- Perform Moves ---
         for (let i = 0; i < movesThisTick; i++) {
             if (snake.isDead) break;
-
+ 
             const currentHead = { ...snake.body[snake.body.length - 1] };
             let nextHead = { ...currentHead };
 
@@ -110,32 +111,12 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 case 'right': nextHead.x += GRID_SIZE; break;
             }
  
-            // Wall collision check (using BOUNDARY_MARGIN)
-            if (nextHead.x < BOUNDARY_MARGIN || nextHead.x >= MAP_WIDTH - BOUNDARY_MARGIN ||
-                nextHead.y < BOUNDARY_MARGIN || nextHead.y >= MAP_HEIGHT - BOUNDARY_MARGIN) {
-                if (snake.powerup?.type !== 'invincible') {
-                    snake.isDead = true;
-                    // Only add to reset list if not already marked for AFK removal
-                    if (!snakesToRemove.includes(snake.id) && !snakesToReset.includes(snake)) {
-                         snakesToReset.push(snake);
-                    }
-                    console.log(`Snake ${snake.id} hit boundary.`);
-                    break; // Stop moving this tick
-                } else {
-                    // Wrap around logic for invincible snakes (using BOUNDARY_MARGIN)
-                    if (nextHead.x < BOUNDARY_MARGIN) nextHead.x = MAP_WIDTH - BOUNDARY_MARGIN - GRID_SIZE;
-                    else if (nextHead.x >= MAP_WIDTH - BOUNDARY_MARGIN) nextHead.x = BOUNDARY_MARGIN;
-                    if (nextHead.y < BOUNDARY_MARGIN) nextHead.y = MAP_HEIGHT - BOUNDARY_MARGIN - GRID_SIZE;
-                    else if (nextHead.y >= MAP_HEIGHT - BOUNDARY_MARGIN) nextHead.y = BOUNDARY_MARGIN;
-                }
-            }
- 
-            // Portal collision check
-            let enteredPortal = false;
+            // Portal collision check (MUST BE BEFORE WALL CHECK)
+            // NOTE: We still use the global `enteredPortal` flag declared outside this loop
             for (const portal of gameState.portals) {
                 const headCenterX = nextHead.x + GRID_SIZE / 2;
                 const headCenterY = nextHead.y + GRID_SIZE / 2; // Consider center
-
+ 
                 if (
                     headCenterX >= portal.x &&
                     headCenterX <= portal.x + portal.width &&
@@ -150,21 +131,40 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                             payload: { url: portal.destinationUrl } // Use the portal's specific destination
                         }));
                     }
-                    // Treat entering the portal like dying for removal purposes
+                    // Snake entered portal, stop processing its moves for this tick
+                    enteredPortal = true; // Set the flag declared outside the loop
+                    break; // Exit this inner portal checking loop
+                }
+            }
+ 
+            // If snake entered portal this step, skip wall check and further movement this step
+            if (enteredPortal) break; // Exit the outer 'for (let i = 0; ...)' loop
+ 
+            // Wall collision check (using BOUNDARY_MARGIN) - ONLY if portal not entered
+            if (nextHead.x < BOUNDARY_MARGIN || nextHead.x >= MAP_WIDTH - BOUNDARY_MARGIN ||
+                nextHead.y < BOUNDARY_MARGIN || nextHead.y >= MAP_HEIGHT - BOUNDARY_MARGIN) {
+                if (snake.powerup?.type !== 'invincible') {
                     snake.isDead = true;
                     // Only add to reset list if not already marked for AFK removal
                     if (!snakesToRemove.includes(snake.id) && !snakesToReset.includes(snake)) {
                          snakesToReset.push(snake);
                     }
-                    enteredPortal = true;
-                    break; // Exit portal loop
+                    console.log(`Snake ${snake.id} hit boundary.`);
+                    break; // Stop moving this tick (exit outer for loop)
+                } else {
+                    // Wrap around logic for invincible snakes (using BOUNDARY_MARGIN)
+                    if (nextHead.x < BOUNDARY_MARGIN) nextHead.x = MAP_WIDTH - BOUNDARY_MARGIN - GRID_SIZE;
+                    else if (nextHead.x >= MAP_WIDTH - BOUNDARY_MARGIN) nextHead.x = BOUNDARY_MARGIN;
+                    if (nextHead.y < BOUNDARY_MARGIN) nextHead.y = MAP_HEIGHT - BOUNDARY_MARGIN - GRID_SIZE;
+                    else if (nextHead.y >= MAP_HEIGHT - BOUNDARY_MARGIN) nextHead.y = BOUNDARY_MARGIN;
+                    // After wrapping, the head position is valid, continue processing this step
                 }
             }
 
-            // If snake died (wall) or portaled, stop processing moves for this snake this tick
-            if (snake.isDead) break;
-
-            // Only push head if not dead/portaled
+            // If snake died (wall) OR entered portal, stop processing moves for this snake this tick
+            if (snake.isDead || enteredPortal) break; // Exit the 'for (let i = 0; ...)' loop
+ 
+            // Only push head if not dead/portaled AND didn't enter portal this step
             snake.body.push(nextHead);
 
             // Food consumption
@@ -198,6 +198,9 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 }
             }
         } // --- End Perform Moves Loop ---
+
+        // If snake entered portal this tick, skip rest of its processing (tail removal, powerup decrement, collisions etc.)
+        if (enteredPortal) return; // Skip subsequent processing for this snake
 
         // 5. Remove Tail Segments
         if (!snake.isDead) {
