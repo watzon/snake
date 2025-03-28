@@ -4,7 +4,8 @@ import { Game } from './game.js';
 import {
     initUIEventListeners, updateServerIndicator, populateServerListModal,
     usernameModal, serverListModal, messageElement, usernameError, startGameButton,
-    validateUsername, usernameInput, pingElement, canvas // Import canvas
+    validateUsername, usernameInput, pingElement, canvas, // Import canvas
+    showPowerupNotification // Import the new UI function
 } from './ui.js';
 import {
     fetchAndSelectBestServer, connectWebSocket, sendPing, getLastPingSentTime
@@ -75,7 +76,7 @@ async function initializeNetworkAndCallbacks() {
     const isValidUser = !validateUsername(usernameInput.value);
     startGameButton.disabled = !(selectedServerInfo && isValidUser);
 
-     
+
           // Spectator mode is now started explicitly via button or on fetch error
           // if (!selectedServerInfo) {
           //    game.startSpectating();
@@ -147,7 +148,7 @@ function handleWebSocketMessage(message) {
     } else if (message.type === 'afkKick') {
         console.log('Received afkKick message from server.');
         messageElement.textContent = 'Kicked for inactivity. Please re-enter username.';
-        
+
         // Prevent automatic reconnect by clearing server info *before* closing
         const tempServerInfo = selectedServerInfo; // Store temporarily if needed later
         selectedServerInfo = null;
@@ -173,6 +174,9 @@ function handleWebSocketMessage(message) {
         // Make sure start button state is correct (disabled until valid username and server)
         startGameButton.disabled = !selectedServerInfo || !!validateUsername(usernameInput.value);
 
+    } else if (message.type === 'powerupCollected') {
+        console.log('Powerup collected:', message.payload.type);
+        game.handlePowerupCollected(message.payload.type); // Call game instance method
     } else {
         console.log('Unknown message type received in main:', message.type);
     }

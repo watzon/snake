@@ -59,3 +59,49 @@ html, body {
        font-size: 1.125rem; /* text-lg */
     /* } */
 }
+
+/* --- Powerup Notification Styles --- */
+.powerup-notification {
+    position: absolute; /* Position relative to the nearest positioned ancestor (body or canvas container) */
+    /* top, left will be set dynamically */
+    padding: 0.5rem 1rem; /* Smaller padding */
+    font-size: 1.2rem; /* Smaller text */
+    font-weight: bold;
+    color: white;
+    border-radius: 8px;
+    z-index: 100; /* Ensure it's above the canvas */
+    animation: powerupFade 1.5s ease-out forwards; /* Animation name, duration, timing, fill mode */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    opacity: 0; /* Start transparent for fade-in */
+}
+
+/* Specific styles for powerup types */
+.powerup-notification.speed {
+    background-color: rgba(0, 150, 255, 0.8); /* Blue for speed */
+}
+.powerup-notification.invincible {
+    background-color: rgba(255, 200, 0, 0.8); /* Yellow/Gold for invincible */
+}
+.powerup-notification.shrink {
+    background-color: rgba(150, 50, 200, 0.8); /* Purple for shrink */
+}
+
+/* Define the animation */
+@keyframes powerupFade {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px); /* Start smaller and slightly below */
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.1) translateY(-5px); /* Scale up slightly and move up */
+    }
+    80% {
+        opacity: 1;
+        transform: scale(1) translateY(0px); /* Hold */
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px); /* Fade out and move up */
+    }
+}

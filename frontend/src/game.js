@@ -1,6 +1,6 @@
 // frontend/src/game.js
 import { deepClone, lerp } from './utils.js';
-import { ctx, canvas, messageElement, updateUI, minimapCanvas, minimapCtx } from './ui.js'; // Import needed UI elements/functions including minimap
+import { ctx, canvas, messageElement, updateUI, minimapCanvas, minimapCtx, showPowerupNotification } from './ui.js'; // Import needed UI elements/functions including minimap and notification
 import { drawBackground, drawMapBoundary, drawSnake, drawFood, drawPowerup, drawPortals, drawMiniMap } from './render.js'; // Import render functions including drawMiniMap and drawPortals
 
 export class Game {
@@ -455,5 +455,31 @@ export class Game {
      // Method to update client ID
      setClientId(id) {
          this.clientId = id;
+     }
+
+     // --- Powerup Handling ---
+     handlePowerupCollected(powerupType) {
+         if (!this.clientId || !this.latestGameState || !this.latestGameState.snakes[this.clientId]) {
+             console.warn("Received powerupCollected but couldn't find own snake state.");
+             return;
+         }
+         const mySnake = this.latestGameState.snakes[this.clientId];
+         if (mySnake.isDead || mySnake.body.length === 0) {
+             console.log("Received powerupCollected while dead or snake has no body.");
+             return;
+         }
+
+         // Get the head position (last element in body)
+         const headPos = mySnake.body[mySnake.body.length - 1];
+
+         // Convert world coordinates to screen coordinates
+         const screenX = headPos.x - this.cameraX;
+         const screenY = headPos.y - this.cameraY;
+
+         // Calculate the center X position on screen
+         const centeredScreenX = screenX + this.GRID_SIZE / 2;
+
+         // Call the UI function with the centered position
+         showPowerupNotification(powerupType, centeredScreenX, screenY);
      }
 }

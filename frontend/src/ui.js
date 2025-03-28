@@ -228,3 +228,42 @@ export function initUIEventListeners(callbacks) {
          }
      });
 }
+
+// --- Powerup Notification ---
+export function showPowerupNotification(powerupType, screenX, screenY) { // Added screenX, screenY
+    const notification = document.createElement('div');
+    notification.classList.add('powerup-notification');
+    let text = '';
+    switch (powerupType) {
+        case 'speed':
+            text = 'SPEED!';
+            notification.classList.add('speed');
+            break;
+        case 'invincible':
+            text = 'INVINCIBLE!';
+            notification.classList.add('invincible');
+            break;
+        case 'shrink':
+            text = 'SHRINK!';
+            notification.classList.add('shrink');
+            break;
+        default:
+            text = `${powerupType.toUpperCase()}!`; // Fallback
+    }
+    notification.textContent = text;
+
+    // Set position based on snake head screen coordinates
+    notification.style.left = `${screenX}px`; // screenX is the center X
+    notification.style.top = `${screenY}px`;  // screenY is the top Y
+    // Apply transform to shift it relative to its own size.
+    // translateX(-50% + 15px) centers the element then shifts it 15px right.
+    // translateY(-100% - 10px) positions the bottom edge at the top of the head, then shifts 10px up.
+    notification.style.transform = `translate(calc(-50% + 15px), calc(-100% - 10px))`; // Center, then offset up and right
+
+    document.body.appendChild(notification);
+
+    // Remove the notification after a delay (e.g., 1.5 seconds)
+    setTimeout(() => {
+        notification.remove();
+    }, 1500);
+}

@@ -44,6 +44,7 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
     if (aiSpawnCheckCounter >= AI_SPAWN_CHECK_INTERVAL) {
         aiSpawnCheckCounter = 0; // Reset counter
         const currentAiCount = Object.values(gameState.snakes).filter(s => s.isAI && !s.isDead).length;
+        console.log(`[AI Spawn Check] Current AI: ${currentAiCount}, Min: ${MIN_AI_SNAKES}, Max: ${MAX_AI_SNAKES}`); // DEBUG LOG
 
         // Spawn if below min OR (below max AND random chance passes)
         const shouldSpawn = currentAiCount < MIN_AI_SNAKES ||
@@ -56,6 +57,9 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
             newAiSnake.username = generateAiName(); // Use new naming function
             gameState.snakes[newId] = newAiSnake;
             console.log(`Spawned new AI snake: ${newAiSnake.username} (ID: ${newId})`);
+            // Log count *after* potentially adding
+            const countAfterSpawn = Object.values(gameState.snakes).filter(s => s.isAI && !s.isDead).length;
+            console.log(`[AI Spawn Check] AI count after potential spawn: ${countAfterSpawn}`); // DEBUG LOG
         }
     }
     // --- End AI Spawning Logic ---
@@ -317,6 +321,16 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 snake.powerup = { type: powerup.type, remainingTicks: POWERUP_DURATION };
                 gameState.powerups.splice(powerupIndex, 1);
                 console.log(`Snake ${snake.id} collected powerup: ${powerup.type}`);
+
+                // Send message to the specific client
+                const client = clients.get(snake.id);
+                // Check if it's a human player before sending
+                if (client && !snake.isAI) {
+                    client.send(JSON.stringify({
+                        type: 'powerupCollected',
+                        payload: { type: powerup.type } // Send the type of powerup
+                    }));
+                }
 
                 if (powerup.type === 'shrink') {
                     Object.values(gameState.snakes).forEach(otherSnake => {
