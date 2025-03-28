@@ -3,8 +3,8 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import type { Server, WebSocketHandler, WebSocketServeOptions, ServerWebSocket } from 'bun'; // Import types
 import { port, nodeMode, initialNodes, ownAddress, serverId } from './config';
-import { GRID_SIZE, MAP_WIDTH, MAP_HEIGHT, TICK_RATE, INITIAL_SNAKE_LENGTH, FOOD_COUNT, POWERUP_SPAWN_CHANCE, MAX_POWERUPS, POWERUP_DURATION, MAX_LENGTH_NO_SLOWDOWN, MAX_SLOWDOWN_FACTOR, SLOWDOWN_PER_SEGMENT, NODE_PING_INTERVAL, NODE_REGISTER_INTERVAL, NODE_TIMEOUT } from './constants';
-import type { WebSocketData, Point, Direction, PowerupType, Powerup, Snake, GameState, ServerInfo } from './types';
+import { GRID_SIZE, MAP_WIDTH, MAP_HEIGHT, TICK_RATE, INITIAL_SNAKE_LENGTH, FOOD_COUNT, POWERUP_SPAWN_CHANCE, MAX_POWERUPS, POWERUP_DURATION, MAX_LENGTH_NO_SLOWDOWN, MAX_SLOWDOWN_FACTOR, SLOWDOWN_PER_SEGMENT, NODE_PING_INTERVAL, NODE_REGISTER_INTERVAL, NODE_TIMEOUT, PORTAL_WIDTH, BOUNDARY_MARGIN } from './constants';
+import type { WebSocketData, Point, Direction, PowerupType, Powerup, Portal, Snake, GameState, ServerInfo } from './types'; // Added Portal
 import { getRandomColor, getAllOccupiedPoints, getRandomPosition, createNewSnake, resetSnake, spawnFood, spawnPowerup, broadcast } from './utils';
 import { knownServers, handleServerRegistration, registerWithNodes, cleanupKnownServers } from './nodeDiscovery';
 import { gameTick } from './gameLoop';
@@ -15,6 +15,16 @@ const gameState: GameState = {
     snakes: {},
     food: [],
     powerups: [],
+    portals: [ // Add the portals array
+        {
+            id: 'vibeverse-portal',
+            x: MAP_WIDTH / 2 - PORTAL_WIDTH / 2, // Center horizontally (recalculated with new width if changed)
+            y: 0, // Position starts at the very top edge
+            width: PORTAL_WIDTH, // Use configured width
+            height: BOUNDARY_MARGIN, // Height now spans the boundary depth
+            text: "Vibeverse Portal"
+        }
+    ],
     map: { width: MAP_WIDTH, height: MAP_HEIGHT, gridSize: GRID_SIZE }, // Use updated constants
 };
 // Use Bun's ServerWebSocket type with our defined data structure

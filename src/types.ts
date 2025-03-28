@@ -20,6 +20,15 @@ export interface Powerup extends Point {
     type: PowerupType;
 }
 
+export interface Portal {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number; // Portal depth will match boundary thickness
+  text: string;
+}
+
 export interface Snake {
     id: string;
     username: string;
@@ -38,6 +47,7 @@ export interface GameState {
     snakes: Record<string, Snake>;
     food: Point[];
     powerups: Powerup[];
+    portals: Portal[];
     map: { width: number; height: number; gridSize: number }; // Map dimensions sent to client
 }
 

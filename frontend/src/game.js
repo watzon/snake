@@ -1,7 +1,7 @@
 // frontend/src/game.js
 import { deepClone, lerp } from './utils.js';
 import { ctx, canvas, messageElement, updateUI, minimapCanvas, minimapCtx } from './ui.js'; // Import needed UI elements/functions including minimap
-import { drawBackground, drawMapBoundary, drawSnake, drawFood, drawPowerup, drawMiniMap } from './render.js'; // Import render functions including drawMiniMap
+import { drawBackground, drawMapBoundary, drawSnake, drawFood, drawPowerup, drawPortals, drawMiniMap } from './render.js'; // Import render functions including drawMiniMap and drawPortals
 
 export class Game {
     // Game State
@@ -123,6 +123,8 @@ export class Game {
         Object.keys(this.latestGameState.snakes).forEach(snakeId => {
             drawSnake(ctx, snakeId, interpolationFactor, this.latestGameState, this.previousGameState, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
         });
+        // Draw Portals
+        drawPortals(ctx, this.latestGameState.portals, this.cameraX, this.cameraY, this.VIEWPORT_WIDTH, this.VIEWPORT_HEIGHT, this.GRID_SIZE);
 
         ctx.restore();
 

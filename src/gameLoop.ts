@@ -95,6 +95,40 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
                 }
             }
  
+            // Portal collision check
+            let enteredPortal = false;
+            for (const portal of gameState.portals) {
+                const headCenterX = nextHead.x + GRID_SIZE / 2;
+                const headCenterY = nextHead.y + GRID_SIZE / 2; // Consider center
+
+                if (
+                    headCenterX >= portal.x &&
+                    headCenterX <= portal.x + portal.width &&
+                    headCenterY >= portal.y &&
+                    headCenterY <= portal.y + portal.height
+                ) {
+                    console.log(`Snake ${snake.id} entered portal ${portal.id}`);
+                    const client = clients.get(snake.id);
+                    if (client) {
+                        client.send(JSON.stringify({
+                            type: 'portalEnter',
+                            payload: { url: 'https://portal.pieter.com?ref=snake.watzon.tech' }
+                        }));
+                    }
+                    // Treat entering the portal like dying for removal purposes
+                    snake.isDead = true;
+                    if (!snakesToReset.includes(snake)) {
+                        snakesToReset.push(snake);
+                    }
+                    enteredPortal = true;
+                    break; // Exit portal loop
+                }
+            }
+
+            // If snake died (wall) or portaled, stop processing moves for this snake this tick
+            if (snake.isDead) break;
+
+            // Only push head if not dead/portaled
             snake.body.push(nextHead);
 
             // Food consumption

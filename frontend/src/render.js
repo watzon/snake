@@ -177,6 +177,79 @@ export function drawPowerup(ctx, powerup, cameraX, cameraY, VIEWPORT_WIDTH, VIEW
     ctx.restore();
 }
 
+export function drawPortals(ctx, portals, cameraX, cameraY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GRID_SIZE) {
+    if (!portals || portals.length === 0) return;
+
+    portals.forEach(portal => {
+        // --- Culling Check ---
+        const portalEndX = portal.x + portal.width;
+        const portalEndY = portal.y + portal.height;
+        if (portalEndX < cameraX || portal.x > cameraX + VIEWPORT_WIDTH ||
+            portalEndY < cameraY || portal.y > cameraY + VIEWPORT_HEIGHT) {
+            return; // Don't draw if off-screen
+        }
+
+        const renderX = portal.x;
+        const renderY = portal.y;
+        const renderWidth = portal.width;
+        const renderHeight = portal.height; // This is the depth
+
+        // --- Glow Effect ---
+        ctx.save(); // Save context state before applying shadow
+        ctx.shadowBlur = 20; // Amount of blur
+        ctx.shadowColor = '#c084fc'; // Purple glow color (adjust as needed)
+
+        // --- Outer Frame (Obsidian-like) ---
+        ctx.fillStyle = '#1a001a'; // Very dark purple/black
+        ctx.fillRect(renderX, renderY, renderWidth, renderHeight);
+
+        // --- Inner Portal Effect (Simple gradient/color) ---
+        // Create a subtle vertical gradient or use a slightly lighter color
+        const gradient = ctx.createLinearGradient(renderX, renderY, renderX, renderY + renderHeight);
+        gradient.addColorStop(0, '#4c004c'); // Darker purple
+        gradient.addColorStop(0.5, '#800080'); // Medium purple (like Nether portal)
+        gradient.addColorStop(1, '#4c004c'); // Darker purple
+
+        // Add a subtle shimmer/movement effect based on time
+        const time = Date.now() / 500; // Adjust speed of shimmer
+        const shimmerOffset = Math.sin(time + portal.x) * (renderHeight * 0.1); // Small vertical offset
+
+        ctx.fillStyle = gradient;
+        // Fill slightly inset to leave frame visible
+        const inset = 2;
+        ctx.fillRect(
+            renderX + inset,
+            renderY + inset + shimmerOffset,
+            renderWidth - inset * 2,
+            renderHeight - inset * 2
+        );
+         // Add some swirling particles (optional, simple version)
+         ctx.fillStyle = 'rgba(220, 180, 255, 0.3)'; // Light purple, semi-transparent
+         for (let i = 0; i < 5; i++) {
+             const particleX = renderX + inset + Math.random() * (renderWidth - inset * 2);
+             const particleY = renderY + inset + Math.random() * (renderHeight - inset * 2);
+             ctx.beginPath();
+             ctx.arc(particleX, particleY, Math.random() * 2 + 1, 0, Math.PI * 2);
+             ctx.fill();
+         }
+
+
+        // --- Portal Text ---
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // White, slightly transparent
+        ctx.font = `bold ${GRID_SIZE * 0.8}px 'Courier New', Courier, monospace`; // Adjust font size as needed
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top'; // Align text from its top edge
+        ctx.fillText(
+            portal.text,
+            renderX + renderWidth / 2,
+            renderY + renderHeight // Position text top edge exactly at the bottom of the portal (inside map area)
+        );
+
+        ctx.restore(); // Restore context to remove shadow effect for subsequent draws
+    });
+}
+
+
 // Needs: minimapCtx, minimapCanvas, latestGameState, clientId, MAP_WIDTH, MAP_HEIGHT
 export function drawMiniMap(minimapCtx, minimapCanvas, latestGameState, clientId, MAP_WIDTH, MAP_HEIGHT) {
     if (!latestGameState || !minimapCtx || !minimapCanvas) return;
@@ -235,4 +308,16 @@ export function drawMiniMap(minimapCtx, minimapCanvas, latestGameState, clientId
             minimapCtx.fillRect(minimapX, minimapY, isSelf ? 3 : 2, isSelf ? 3 : 2); // Player snake slightly larger
         });
     });
+
+    // --- Draw Portals ---
+    if (latestGameState.portals) {
+        latestGameState.portals.forEach(portal => {
+            const minimapX = portal.x * scaleX;
+            const minimapY = portal.y * scaleY;
+            const minimapWidth = portal.width * scaleX;
+            const minimapHeight = portal.height * scaleY; // Represent depth on minimap
+            minimapCtx.fillStyle = '#800080'; // Purple color for portal
+            minimapCtx.fillRect(minimapX, minimapY, Math.max(2, minimapWidth), Math.max(1, minimapHeight)); // Ensure minimum size
+        });
+    }
 }

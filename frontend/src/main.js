@@ -100,6 +100,13 @@ function handleWebSocketMessage(message) {
          game.setClientId(message.payload.clientId); // Also set client ID in game instance
     } else if (message.type === 'gameState') {
         game.updateState(message.payload); // Update game state
+    } else if (message.type === 'portalEnter') {
+        console.log('Received portalEnter message, redirecting...');
+        if (message.payload && message.payload.url) {
+            window.location.href = message.payload.url;
+        } else {
+            console.error('portalEnter message received without valid URL payload.');
+        }
     } else {
         console.log('Unknown message type received in main:', message.type);
     }

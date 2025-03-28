@@ -14,6 +14,7 @@ export const POWERUP_SPAWN_CHANCE = 0.01; // Keep spawn chance per tick
 // Scale max powerups (maybe slightly less than 4x)
 export const MAX_POWERUPS = 15; // Previous 5 * 3 (adjust as desired)
 export const POWERUP_DURATION = 50;
+export const PORTAL_WIDTH = 300; // Width of the portal object in game units (Increased width again)
 
 // --- Constants for Slowdown ---
 export const MAX_LENGTH_NO_SLOWDOWN = 15; // Length up to which there's no slowdown
