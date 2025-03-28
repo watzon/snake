@@ -22,3 +22,40 @@ html, body {
     height: 100%;
     z-index: 1;
 }
+
+/* --- Responsive Adjustments for Mobile --- */
+@media (max-width: 600px) {
+    /* Reduce minimap size */
+    #minimapCanvas {
+        width: 120px; /* Smaller width */
+        height: 120px; /* Smaller height */
+        bottom: 4px; /* Adjust positioning slightly if needed */
+        left: 4px;
+    }
+
+    /* Adjust leaderboard */
+    #leaderboard {
+        max-width: 130px; /* Narrower leaderboard */
+        /* Consider reducing font size if necessary */
+        /* font-size: 10px; */
+        right: 4px; /* Adjust positioning slightly */
+        top: 4px;
+    }
+
+    /* Adjust main score/message UI */
+    #ui {
+        top: 4px; /* Adjust positioning slightly */
+        left: 4px;
+        /* Consider reducing font size if necessary */
+        /* font-size: 14px; */
+    }
+
+     /* Adjust modal padding/text if needed */
+    #usernameModal > div, #serverListModal > div {
+       padding: 1.25rem; /* Slightly reduce padding (p-5) */
+    }
+    /* Example: Reduce modal title size */
+    /* #usernameModal h2, #serverListModal h2 {
+       font-size: 1.125rem; /* text-lg */
+    /* } */
+}

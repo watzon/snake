@@ -9,6 +9,7 @@ export default defineConfig({ // Use standard export default
       tailwindcss(), // Add the plugin instance directly
     ],
     server: {
+      host: '0.0.0.0', // Allow external connections
     // Proxy API and WebSocket requests to the backend server during development
     proxy: {
       // Proxy WebSocket connections

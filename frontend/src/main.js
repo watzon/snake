@@ -4,7 +4,7 @@ import { Game } from './game.js';
 import {
     initUIEventListeners, updateServerIndicator, populateServerListModal,
     usernameModal, serverListModal, messageElement, usernameError, startGameButton,
-    validateUsername, usernameInput, pingElement // Import necessary UI elements/functions
+    validateUsername, usernameInput, pingElement, canvas // Import canvas
 } from './ui.js';
 import {
     fetchAndSelectBestServer, connectWebSocket, sendPing, getLastPingSentTime
@@ -254,6 +254,9 @@ initUIEventListeners({
 
 // --- Global Event Listeners ---
 document.addEventListener('keydown', (event) => game.handleKeyDown(event));
+// Add touch listeners to the canvas
+canvas.addEventListener('touchstart', (event) => game.handleTouchStart(event), { passive: false }); // passive: false to allow preventDefault
+canvas.addEventListener('touchend', (event) => game.handleTouchEnd(event), { passive: false });
 window.addEventListener('resize', debounce(() => game.resize(), 100));
 
 // --- Initial Load ---

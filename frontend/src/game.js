@@ -33,6 +33,13 @@ export class Game {
     // Input State & Prediction
     predictedDirection = null; // Store the locally predicted direction immediately on input
 
+ // Touch Input State
+ touchStartX = 0;
+ touchStartY = 0;
+ touchEndX = 0;
+ touchEndY = 0;
+ minSwipeDistance = 30; // Minimum distance in pixels for a swipe
+
     // Loop State
     frameCounter = 0;
     rafHandle = null; // To store requestAnimationFrame ID
@@ -152,12 +159,14 @@ export class Game {
         ctx.restore();
 
         this.frameCounter++;
-        if (this.frameCounter % 10 === 0) {
+        // Reduce update frequency for UI and Minimap for performance
+        if (this.frameCounter % 30 === 0) {
             updateUI(this.latestGameState, this.clientId, this.deathMessageTimeoutRef);
+            // Also move minimap drawing here to reduce its frequency
+            drawMiniMap(minimapCtx, minimapCanvas, this.latestGameState, this.clientId, this.MAP_WIDTH, this.MAP_HEIGHT);
         }
 
-        // Draw the minimap
-        drawMiniMap(minimapCtx, minimapCanvas, this.latestGameState, this.clientId, this.MAP_WIDTH, this.MAP_HEIGHT);
+        // Minimap drawing moved inside the less frequent update block above
 
         this.rafHandle = requestAnimationFrame(() => this.loop());
     }
@@ -228,6 +237,32 @@ export class Game {
     }
 
     // --- Input Handler ---
+ requestDirectionChange(requestedDirection) {
+  if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.clientId || !this.latestGameState) {
+   return; // Ignore input if not connected or no state
+  }
+
+  const mySnake = this.latestGameState.snakes[this.clientId];
+  if (!mySnake || mySnake.isDead) return; // Ignore input if snake doesn't exist or is dead
+
+  // Client-Side Prediction Check (Prevent reversing direction)
+  const currentServerDirection = mySnake.direction;
+  let isValidMove = false;
+  if (
+   (requestedDirection === 'up' && currentServerDirection !== 'down') ||
+   (requestedDirection === 'down' && currentServerDirection !== 'up') ||
+   (requestedDirection === 'left' && currentServerDirection !== 'right') ||
+   (requestedDirection === 'right' && currentServerDirection !== 'left')
+  ) {
+   isValidMove = true;
+  }
+
+  if (isValidMove) {
+   this.predictedDirection = requestedDirection; // Update prediction
+   this.ws.send(JSON.stringify({ type: 'directionChange', payload: requestedDirection }));
+  }
+ }
+
     handleKeyDown(event) {
         const spectatorMoveStep = this.GRID_SIZE * 3; // How much to move camera per key press
 
@@ -252,39 +287,18 @@ export class Game {
 
         } else {
             // --- Player Snake Control ---
-            if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.clientId || !this.latestGameState) {
-                return; // Ignore input if not connected or no state
-            }
-
-            const mySnake = this.latestGameState.snakes[this.clientId];
-            if (!mySnake || mySnake.isDead) return; // Ignore input if snake doesn't exist or is dead
-
             let requestedDirection = null;
             switch (event.key) {
                 case 'ArrowUp': requestedDirection = 'up'; break;
                 case 'ArrowDown': requestedDirection = 'down'; break;
                 case 'ArrowLeft': requestedDirection = 'left'; break;
                 case 'ArrowRight': requestedDirection = 'right'; break;
-                case 'Escape': break; // Allow Escape to return to menu
+                case 'Escape': break; // Handle Escape separately below
                 default: return; // Ignore other keys
             }
-
-            // Client-Side Prediction Check
-            const currentServerDirection = mySnake.direction;
-            let isValidMove = false;
-            if (
-                (requestedDirection === 'up' && currentServerDirection !== 'down') ||
-                (requestedDirection === 'down' && currentServerDirection !== 'up') ||
-                (requestedDirection === 'left' && currentServerDirection !== 'right') ||
-                (requestedDirection === 'right' && currentServerDirection !== 'left')
-            ) {
-                isValidMove = true;
-            }
-
-            if (isValidMove) {
-                this.predictedDirection = requestedDirection;
-                this.ws.send(JSON.stringify({ type: 'directionChange', payload: requestedDirection }));
-            }
+   if (requestedDirection) {
+    this.requestDirectionChange(requestedDirection);
+   }
 
             event.preventDefault(); // Prevent scrolling
         }
@@ -327,6 +341,42 @@ export class Game {
             event.preventDefault(); // Prevent any default browser behavior for Escape
         }
     }
+
+ handleTouchStart(event) {
+  // Only process touch if playing, not spectating
+  if (this.isSpectating) return;
+
+  this.touchStartX = event.touches[0].clientX;
+  this.touchStartY = event.touches[0].clientY;
+  // Prevent default touch behavior like scrolling/zooming on the canvas
+  event.preventDefault();
+ }
+
+ handleTouchEnd(event) {
+  // Only process touch if playing, not spectating
+  if (this.isSpectating || this.touchStartX === 0) return; // Ensure touchstart happened
+
+  this.touchEndX = event.changedTouches[0].clientX;
+  this.touchEndY = event.changedTouches[0].clientY;
+
+  const deltaX = this.touchEndX - this.touchStartX;
+  const deltaY = this.touchEndY - this.touchStartY;
+
+  // Determine if it was primarily a horizontal or vertical swipe
+  if (Math.abs(deltaX) > Math.abs(deltaY)) { // Horizontal swipe
+   if (Math.abs(deltaX) > this.minSwipeDistance) {
+    this.requestDirectionChange(deltaX > 0 ? 'right' : 'left');
+   }
+  } else { // Vertical swipe
+   if (Math.abs(deltaY) > this.minSwipeDistance) {
+    this.requestDirectionChange(deltaY > 0 ? 'down' : 'up');
+   }
+  }
+
+  // Reset touch start coordinates
+  this.touchStartX = 0;
+  this.touchStartY = 0;
+ }
 
     // --- Spectator Mode ---
     async fetchGameStateForSpectator() {
