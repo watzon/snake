@@ -1,6 +1,7 @@
 {
   "name": "hono-bun-snake",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev:backend": "bun run --watch src/index.ts",
     "dev:frontend": "vite",
