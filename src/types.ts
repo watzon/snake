@@ -43,6 +43,7 @@ export interface Snake {
     pendingDirection?: Direction;
     moveProgress: number;
     lastActivityTime: number; // Timestamp (ms) of the last received input
+    quitRequested?: boolean; // Flag to mark snake for removal on next tick
 }
 
 export interface GameState {

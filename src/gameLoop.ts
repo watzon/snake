@@ -38,6 +38,17 @@ export function gameTick(gameState: GameState, clients: ClientMap) {
     Object.values(gameState.snakes).forEach(snake => {
         if (snake.isDead) return;
 
+        // --- Quit Check ---
+        if (snake.quitRequested) {
+             console.log(`Snake ${snake.id} removed due to quit request.`);
+             if (!snakesToRemove.includes(snake.id)) {
+                  snakesToRemove.push(snake.id);
+             }
+             // No need to send a message, client initiated this by closing WS or pressing Esc
+             return; // Stop processing this snake
+        }
+        // --- End Quit Check ---
+
         // --- AFK Check ---
         const now = Date.now();
         if (now - snake.lastActivityTime > AFK_TIMEOUT) {

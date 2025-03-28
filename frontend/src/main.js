@@ -61,6 +61,7 @@ async function initializeNetworkAndCallbacks() {
             updateServerIndicator(null); // Show error/disconnected state
             startGameButton.disabled = true;
             messageElement.textContent = errorMsg;
+            game.startSpectating(); // Start spectating if server fetch fails
         }
     });
 
@@ -74,12 +75,12 @@ async function initializeNetworkAndCallbacks() {
     const isValidUser = !validateUsername(usernameInput.value);
     startGameButton.disabled = !(selectedServerInfo && isValidUser);
 
-     // Start spectator mode fetching if no server selected initially
-     if (!selectedServerInfo) {
-         game.startSpectating();
+     
+          // Spectator mode is now started explicitly via button or on fetch error
+          // if (!selectedServerInfo) {
+          //    game.startSpectating();
+          // }
      }
-}
-
 // --- WebSocket Callback Handlers ---
 function handleWebSocketOpen() {
     messageElement.textContent = 'Connected! Joining game...';
@@ -107,6 +108,12 @@ function handleWebSocketClose() {
     } else {
         console.error("Cannot reconnect: No server selected.");
         messageElement.textContent = 'Disconnected. Please select a server.';
+        // Ensure modal is shown if reconnection isn't attempted or fails
+        usernameModal.classList.remove('hidden');
+        usernameInput.disabled = false;
+        usernameInput.focus();
+        // Update button state
+        startGameButton.disabled = !selectedServerInfo || !!validateUsername(usernameInput.value);
     }
 }
 
@@ -191,6 +198,23 @@ function connectToSelectedServer() {
      }
 }
 
+// Callback for Spectate button
+function handleSpectateClick() {
+    console.log("Spectate button clicked.");
+    usernameModal.classList.add('hidden');
+    messageElement.textContent = 'Spectating...';
+    // Ensure any existing connection is closed cleanly
+    if (ws) {
+        ws.onclose = null; // Prevent default reconnect
+        ws.close(1000, 'User chose to spectate');
+    }
+     clearInterval(pingInterval);
+     pingInterval = null;
+     ws = null;
+     selectedServerInfo = null; // Clear selected server when spectating explicitly
+     updateServerIndicator(null); // Update UI to show no connection
+     game.startSpectating(); // Tell the game instance to start polling /gamestate
+}
 
 // --- UI Event Listeners Setup ---
 initUIEventListeners({
@@ -224,7 +248,8 @@ initUIEventListeners({
     },
     onUsernameValidation: (isValid) => {
         startGameButton.disabled = !(selectedServerInfo && isValid);
-    }
+    },
+    onSpectate: handleSpectateClick // Pass the spectate handler
 });
 
 // --- Global Event Listeners ---

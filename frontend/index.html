@@ -12,71 +12,77 @@
 </head>
 <body>
     <!-- Username Modal -->
-    <div id="usernameModal" class="modal">
-        <div class="modal-content">
-            <h2>Enter Your Initials</h2>
-            <p>Choose 4 characters for your snake name:</p>
-            <input type="text" id="usernameInput" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false">
-            <p id="usernameError" class="error-text"></p>
+    <div id="usernameModal" class="fixed inset-0 bg-black/80 flex justify-center items-center z-[1000]">
+        <div class="flex flex-col items-center gap-4 bg-[#1a1d23] p-8 rounded-lg border-2 border-[#61dafb] max-w-md w-[90%]">
+            <h2 class="text-[#61dafb] mt-0 text-xl font-semibold">Enter Your Initials</h2>
+            <p class="text-[#eee] mt-0 mb-0">Choose 4 characters for your snake name:</p>
+            <input type="text" id="usernameInput" maxlength="4" placeholder="ABCD" autocomplete="off" spellcheck="false"
+                   class="bg-[#2a2d33] border-2 border-[#61dafb] text-white p-2 text-2xl w-32 text-center rounded focus:outline-none focus:border-green-500 uppercase">
+            <p id="usernameError" class="text-red-500 text-sm shrink"></p>
 
-            <!-- Server Indicator (Placed before Start button) -->
-            <div id="serverIndicator" class="server-indicator" title="Click to select server">
-                <span class="server-flag">🌐</span> <!-- Placeholder icon -->
-                <span class="server-id">Connecting...</span>
-                <span class="server-ping">-- ms</span>
+            <!-- Server Indicator -->
+            <div id="serverIndicator" title="Click to select server"
+                 class="order-[10] mt-auto self-start inline-flex items-center gap-1.5 bg-[rgba(42,45,51,0.8)] px-3 py-1.5 rounded border border-[#444] text-[#ccc] text-sm cursor-pointer transition hover:bg-[rgba(58,61,67,0.9)] hover:border-[#61dafb]">
+                <span id="serverFlagIcon" class="text-lg">🌐</span> <!-- Added ID -->
+                <span id="serverIdText" class="font-bold text-white">Connecting...</span>
+                <span id="serverPingText" class="text-green-400">-- ms</span>
             </div>
-            <!-- End Server Indicator -->
 
-            <button id="startGameButton" disabled>Start Game</button> <!-- Initially disabled -->
+            <div class="flex justify-center items-center gap-4">
+                <button id="startGameButton" disabled
+                    class="bg-[#61dafb] text-[#1a1d23] border-none px-8 py-3 text-lg rounded cursor-pointer transition hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed">Start Game</button>
+                <button id="spectateButton" class="bg-slate-500 text-[#1a1d23] border-none px-6 py-2 text-lg rounded cursor-pointer transition hover:bg-slate-300 disabled:bg-gray-700 disabled:cursor-not-allowed">Spectate</button>
+            </div>
         </div>
     </div>
 
-    <!-- Canvas will be positioned absolutely -->
+    <!-- Canvas -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Server List Modal (Re-added, Initially Hidden) -->
-    <div id="serverListModal" class="modal hidden"> <!-- Add 'hidden' class -->
-        <div class="modal-content server-list-content">
-            <h2>Select Server</h2>
-            <div class="server-table-container">
-                <table id="serverListTable">
+
+    <!-- Server List Modal -->
+    <div id="serverListModal" class="fixed inset-0 bg-black/80 flex justify-center items-center z-[1000] hidden">
+        <div class="flex flex-col bg-[#1a1d23] p-8 rounded-lg border-2 border-[#61dafb] max-w-2xl w-[90%]">
+            <h2 class="text-[#61dafb] mb-4 text-xl font-semibold text-center">Select Server</h2>
+            <div class="max-h-[60vh] overflow-y-auto mb-4 border border-[#444] rounded-md">
+                <table id="serverListTable" class="w-full border-collapse text-[#eee]">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Address</th>
-                            <th>Players</th>
-                            <th>Ping</th>
-                            <!-- <th>Country</th> -->
+                            <th class="px-4 py-2.5 text-left border-b border-[#333] whitespace-nowrap text-[#61dafb] bg-[#20232a] sticky top-0 z-10 border-b-2 border-[#61dafb]">ID</th>
+                            <th class="px-4 py-2.5 text-left border-b border-[#333] whitespace-nowrap text-[#61dafb] bg-[#20232a] sticky top-0 z-10 border-b-2 border-[#61dafb]">Address</th>
+                            <th class="px-4 py-2.5 text-left border-b border-[#333] whitespace-nowrap text-[#61dafb] bg-[#20232a] sticky top-0 z-10 border-b-2 border-[#61dafb] text-right font-mono">Players</th>
+                            <th class="px-4 py-2.5 text-left border-b border-[#333] whitespace-nowrap text-[#61dafb] bg-[#20232a] sticky top-0 z-10 border-b-2 border-[#61dafb] text-right font-mono">Ping</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- Rows will be added by JS -->
-                        <tr><td colspan="4">Loading...</td></tr>
+                    <tbody id="serverListBody">
+                        <tr><td colspan="4" class="px-4 py-2.5 text-left border-b border-[#333] whitespace-nowrap text-center italic">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
-             <div class="modal-buttons"> <!-- Button wrapper -->
-                 <button id="refreshServerListModalButton" title="Refresh Server List">🔄 Refresh</button>
-                <button id="closeServerListModalButton">Close</button>
+             <div class="flex justify-end gap-2.5 mt-4 border-t border-[#444] pt-4">
+                 <button id="refreshServerListModalButton" title="Refresh Server List"
+                         class="bg-[#3a3d43] text-[#eee] px-5 py-2.5 text-base rounded cursor-pointer transition-colors duration-200 hover:bg-[#4a4d53]">🔄 Refresh</button>
+                <button id="closeServerListModalButton"
+                        class="bg-[#555] text-[#eee] px-5 py-2.5 text-base rounded cursor-pointer transition-colors duration-200 hover:bg-[#777]">Close</button>
             </div>
         </div>
     </div>
 
-
-    <!-- UI elements positioned absolutely -->
-    <div id="ui">
+    <!-- UI elements -->
+    <div id="ui" class="absolute top-2.5 left-2.5 bg-black/60 px-2.5 py-1.5 rounded text-white text-base z-10 pointer-events-none">
         <div id="score">Score: 0</div>
-        <div id="message">Connecting...</div>
-        <div id="ping">Ping: -- ms</div>
+        <div id="message" class="mt-1 italic text-yellow-400">Connecting...</div>
+        <div id="ping" class="mt-1 text-sm text-green-400">Ping: -- ms</div>
     </div>
 
-     <div id="leaderboard">
-        <h2>Top Snakes</h2> <!-- Changed title slightly -->
-        <ul id="leaderboard-list"></ul>
+     <!-- Leaderboard -->
+     <div id="leaderboard" class="absolute top-2.5 right-2.5 bg-black/50 px-3 py-2 rounded-md max-w-[180px] max-h-[200px] overflow-y-auto z-10 text-xs pointer-events-none">
+        <h2 class="mt-0 mb-1 text-center text-[#61dafb] text-sm font-semibold border-b border-[#61dafb] pb-1">Top Snakes</h2>
+        <ul id="leaderboard-list" class="list-none p-0 m-0"></ul>
     </div>
 
     <!-- Mini-map Canvas -->
-    <canvas id="minimapCanvas"></canvas>
+    <canvas id="minimapCanvas" class="absolute bottom-2.5 left-2.5 w-[200px] h-[200px] border border-gray-600 bg-black/30 z-10 pointer-events-none"></canvas>
 
     <script type="module" src="src/main.js"></script>
 </body>

@@ -13,10 +13,11 @@ export const usernameModal = document.getElementById('usernameModal');
 export const usernameInput = document.getElementById('usernameInput');
 export const usernameError = document.getElementById('usernameError');
 export const startGameButton = document.getElementById('startGameButton');
+export const spectateButton = document.getElementById('spectateButton'); // Added Spectate Button
 export const serverIndicator = document.getElementById('serverIndicator');
-export const serverIndicatorFlag = serverIndicator.querySelector('.server-flag');
-export const serverIndicatorId = serverIndicator.querySelector('.server-id');
-export const serverIndicatorPing = serverIndicator.querySelector('.server-ping');
+export const serverIndicatorFlag = document.getElementById('serverFlagIcon'); // Use ID
+export const serverIndicatorId = document.getElementById('serverIdText'); // Use ID
+export const serverIndicatorPing = document.getElementById('serverPingText'); // Use ID
 export const serverListModal = document.getElementById('serverListModal');
 export const serverListTableBody = serverListModal.querySelector('#serverListTable tbody');
 export const refreshServerListModalButton = document.getElementById('refreshServerListModalButton');
@@ -123,16 +124,17 @@ export function updateUI(latestGameState, clientId, deathMessageTimeoutRef) {
     leaderboardList.innerHTML = '';
     sortedSnakes.forEach(snake => {
         const li = document.createElement('li');
+        li.className = 'py-1 flex justify-between border-b border-dashed border-gray-600 last:border-b-0';
+
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'player-name';
+        nameSpan.className = 'player-name font-bold whitespace-nowrap overflow-hidden text-ellipsis mr-1';
         const name = snake.id === clientId ? `You (${snake.username})` : snake.username;
         nameSpan.textContent = name;
-        nameSpan.style.color = snake.color;
-        if (snake.id === clientId) nameSpan.style.fontWeight = 'bold';
-        if (snake.isDead) { nameSpan.style.textDecoration = 'line-through'; nameSpan.style.opacity = '0.6'; }
+        nameSpan.style.color = snake.color; // Keep dynamic color style
+        if (snake.isDead) { nameSpan.style.textDecoration = 'line-through'; nameSpan.style.opacity = '0.6'; } // Keep dynamic styles
 
         const scoreSpan = document.createElement('span');
-        scoreSpan.className = 'player-score';
+        scoreSpan.className = 'player-score text-yellow-400 shrink-0';
         scoreSpan.textContent = snake.score;
 
         li.appendChild(nameSpan);
@@ -197,6 +199,13 @@ export function initUIEventListeners(callbacks) {
             usernameError.textContent = userError; // Ensure error is shown
         }
     });
+
+    // Add listener for Spectate button
+    if (spectateButton && callbacks.onSpectate) {
+         spectateButton.addEventListener('click', () => {
+              callbacks.onSpectate();
+         });
+    }
 
      // Server Indicator Click
      serverIndicator.addEventListener('click', () => {

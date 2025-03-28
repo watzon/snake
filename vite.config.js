@@ -1,10 +1,19 @@
 // vite.config.js
 import { defineConfig } from 'vite';
+// Note: Dynamically importing tailwindcss plugin for potential ESM/CJS compatibility
+// import tailwindcss from '@tailwindcss/vite'; // Original import
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  root: 'frontend', // Set the project root to the 'frontend' directory
-  server: {
+// Define an async function to load the config
+const createViteConfig = async () => {
+  const tailwindcss = (await import('@tailwindcss/vite')).default; // Dynamic import
+
+  return defineConfig({
+    root: 'frontend', // Set the project root to the 'frontend' directory
+    plugins: [
+      tailwindcss(), // Add the plugin instance
+    ],
+    server: {
     // Proxy API and WebSocket requests to the backend server during development
     proxy: {
       // Proxy WebSocket connections
@@ -34,4 +43,7 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true, // Clear output directory before building
   },
-});
+}); // Closes the inner defineConfig call
+}; // Closes the createViteConfig async function
+
+export default createViteConfig(); // Export the result of calling the async function

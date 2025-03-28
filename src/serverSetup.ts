@@ -156,6 +156,14 @@ export function createServerSetup(
                     }
                 }
 
+                if (parsedMessage.type === 'quitGame') {
+                    if (snake) {
+                        console.log(`Snake ${clientId} requested quit.`);
+                        snake.quitRequested = true;
+                        // Snake will be removed in the next game tick
+                    }
+                }
+
             } catch (error) {
                 console.error("Failed to parse message:", message, error);
             }

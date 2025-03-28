@@ -164,38 +164,50 @@ export class Game {
 
     // --- Camera Logic ---
     updateCamera(interpolationFactor) {
-        let targetFocusX = this.MAP_WIDTH / 2;
-        let targetFocusY = this.MAP_HEIGHT / 2;
-
+        // If playing, calculate target camera based on snake focus
         if (!this.isSpectating && this.latestGameState && this.clientId && this.latestGameState.snakes[this.clientId]) {
-            const mySnake = this.latestGameState.snakes[this.clientId];
+            let targetFocusX = this.MAP_WIDTH / 2; // Default focus
+            let targetFocusY = this.MAP_HEIGHT / 2;
+            const mySnake = this.latestGameState.snakes[this.clientId]; // Only one declaration
+
             if (!mySnake.isDead && mySnake.body.length > 0) {
+                // Calculate interpolated head position
                 const headLatest = mySnake.body[mySnake.body.length - 1];
                 let headPrev = headLatest;
-                if (this.previousGameState && this.previousGameState.snakes[this.clientId] && this.previousGameState.snakes[this.clientId].body.length > 0) {
-                     const prevSnake = this.previousGameState.snakes[this.clientId];
-                     if (prevSnake.body.length === mySnake.body.length) {
-                        headPrev = prevSnake.body[prevSnake.body.length - 1];
-                     }
+                // Use optional chaining for safety
+                if (this.previousGameState?.snakes[this.clientId]?.body?.length === mySnake.body.length) {
+                     headPrev = this.previousGameState.snakes[this.clientId].body[mySnake.body.length - 1];
                 }
                 targetFocusX = lerp(headPrev.x, headLatest.x, interpolationFactor) + this.GRID_SIZE / 2;
                 targetFocusY = lerp(headPrev.y, headLatest.y, interpolationFactor) + this.GRID_SIZE / 2;
+            } else if (mySnake.isDead && mySnake.body.length > 0) {
+                // Focus on dead snake's last known head position
+                const headLatest = mySnake.body[mySnake.body.length - 1];
+                targetFocusX = headLatest.x + this.GRID_SIZE / 2;
+                targetFocusY = headLatest.y + this.GRID_SIZE / 2;
             }
-             else if (mySnake.isDead && mySnake.body.length > 0) {
-                 const headLatest = mySnake.body[mySnake.body.length - 1];
-                 targetFocusX = headLatest.x + this.GRID_SIZE / 2;
-                 targetFocusY = headLatest.y + this.GRID_SIZE / 2;
-             }
+
+            // Update target camera based on calculated focus
+            this.targetCameraX = targetFocusX - this.VIEWPORT_WIDTH / 2;
+            this.targetCameraY = targetFocusY - this.VIEWPORT_HEIGHT / 2;
+
+            // Clamp target camera position immediately after calculation
+            this.targetCameraX = Math.max(0, Math.min(this.targetCameraX, this.MAP_WIDTH - this.VIEWPORT_WIDTH));
+            this.targetCameraY = Math.max(0, Math.min(this.targetCameraY, this.MAP_HEIGHT - this.VIEWPORT_HEIGHT));
         }
+        // If spectating, this.targetCameraX/Y is assumed to be updated by handleKeyDown and already clamped there.
 
-        this.targetCameraX = targetFocusX - this.VIEWPORT_WIDTH / 2;
-        this.targetCameraY = targetFocusY - this.VIEWPORT_HEIGHT / 2;
-        this.targetCameraX = Math.max(0, Math.min(this.targetCameraX, this.MAP_WIDTH - this.VIEWPORT_WIDTH));
-        this.targetCameraY = Math.max(0, Math.min(this.targetCameraY, this.MAP_HEIGHT - this.VIEWPORT_HEIGHT));
+        // Apply smoothing towards the target (either snake-based or spectator-controlled)
+        const cameraLerpFactor = 0.1; // Smoothing factor
+        // Ensure targetCameraX/Y are valid numbers before lerping, especially if spectating started before map dimensions known
+        // Added check for null as well
+        if (isNaN(this.targetCameraX) || this.targetCameraX === null) this.targetCameraX = (this.MAP_WIDTH - this.VIEWPORT_WIDTH) / 2 || 0;
+        if (isNaN(this.targetCameraY) || this.targetCameraY === null) this.targetCameraY = (this.MAP_HEIGHT - this.VIEWPORT_HEIGHT) / 2 || 0;
 
-        const cameraLerpFactor = 0.1;
         this.cameraX = lerp(this.cameraX, this.targetCameraX, cameraLerpFactor);
         this.cameraY = lerp(this.cameraY, this.targetCameraY, cameraLerpFactor);
+
+        // Final clamp on the actual camera position after smoothing
         this.cameraX = Math.max(0, Math.min(this.cameraX, this.MAP_WIDTH - this.VIEWPORT_WIDTH));
         this.cameraY = Math.max(0, Math.min(this.cameraY, this.MAP_HEIGHT - this.VIEWPORT_HEIGHT));
     }
@@ -217,43 +229,103 @@ export class Game {
 
     // --- Input Handler ---
     handleKeyDown(event) {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.clientId || !this.latestGameState || this.isSpectating) {
-            return; // Ignore input if not connected, no client ID, no state, or spectating
+        const spectatorMoveStep = this.GRID_SIZE * 3; // How much to move camera per key press
+
+        if (this.isSpectating) {
+            // --- Spectator Camera Control ---
+            let dx = 0;
+            let dy = 0;
+            switch (event.key) {
+                case 'ArrowUp': dy = -spectatorMoveStep; break;
+                case 'ArrowDown': dy = spectatorMoveStep; break;
+                case 'ArrowLeft': dx = -spectatorMoveStep; break;
+                case 'ArrowRight': dx = spectatorMoveStep; break;
+                case 'Escape': break; // Allow Escape to exit spectator mode
+                default: return; // Ignore other keys in spectator mode
+            }
+
+            // Update target camera position, clamping within bounds
+            this.targetCameraX = Math.max(0, Math.min(this.targetCameraX + dx, this.MAP_WIDTH - this.VIEWPORT_WIDTH));
+            this.targetCameraY = Math.max(0, Math.min(this.targetCameraY + dy, this.MAP_HEIGHT - this.VIEWPORT_HEIGHT));
+
+            event.preventDefault(); // Prevent scrolling
+
+        } else {
+            // --- Player Snake Control ---
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.clientId || !this.latestGameState) {
+                return; // Ignore input if not connected or no state
+            }
+
+            const mySnake = this.latestGameState.snakes[this.clientId];
+            if (!mySnake || mySnake.isDead) return; // Ignore input if snake doesn't exist or is dead
+
+            let requestedDirection = null;
+            switch (event.key) {
+                case 'ArrowUp': requestedDirection = 'up'; break;
+                case 'ArrowDown': requestedDirection = 'down'; break;
+                case 'ArrowLeft': requestedDirection = 'left'; break;
+                case 'ArrowRight': requestedDirection = 'right'; break;
+                case 'Escape': break; // Allow Escape to return to menu
+                default: return; // Ignore other keys
+            }
+
+            // Client-Side Prediction Check
+            const currentServerDirection = mySnake.direction;
+            let isValidMove = false;
+            if (
+                (requestedDirection === 'up' && currentServerDirection !== 'down') ||
+                (requestedDirection === 'down' && currentServerDirection !== 'up') ||
+                (requestedDirection === 'left' && currentServerDirection !== 'right') ||
+                (requestedDirection === 'right' && currentServerDirection !== 'left')
+            ) {
+                isValidMove = true;
+            }
+
+            if (isValidMove) {
+                this.predictedDirection = requestedDirection;
+                this.ws.send(JSON.stringify({ type: 'directionChange', payload: requestedDirection }));
+            }
+
+            event.preventDefault(); // Prevent scrolling
         }
 
-        const mySnake = this.latestGameState.snakes[this.clientId];
-        if (!mySnake || mySnake.isDead) return; // Ignore input if snake doesn't exist or is dead
+        // Handle Escape key to return to menu
+        if (event.key === 'Escape') {
+            if (this.isSpectating) {
+                this.stopSpectating();
+                // Ensure input is enabled and focused when returning from spectate
+                usernameInput.disabled = false;
+                usernameModal.classList.remove('hidden');
+                usernameInput.focus();
+            } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                // Handle quitting while playing - BYPASS RECONNECT
+                console.log("Escape pressed while playing. Sending quitGame and closing connection without reconnect.");
+                messageElement.textContent = 'Returned to menu...';
+                // Send quit message to server so it removes the snake
+                this.ws.send(JSON.stringify({ type: 'quitGame' }));
 
-        let requestedDirection = null;
-        switch (event.key) {
-            case 'ArrowUp': case 'w': requestedDirection = 'up'; break;
-            case 'ArrowDown': case 's': requestedDirection = 'down'; break;
-            case 'ArrowLeft': case 'a': requestedDirection = 'left'; break;
-            case 'ArrowRight': case 'd': requestedDirection = 'right'; break;
-            default: return; // Ignore other keys
+                // Prevent automatic reconnect by setting onclose to null first
+                this.ws.onclose = null;
+                this.ws.close(1000, 'User pressed Escape'); // Close connection gracefully
+
+                // Manually clear interval and reset ws state (like in afkKick)
+                // Need access to pingInterval from main.js - This highlights a design issue.
+                // For now, we assume the user will manually stop the interval if needed,
+                // or we modify main.js to expose a way to clear it.
+                // Let's proceed assuming main.js might have lingering interval, but focus on UI reset.
+                // clearInterval(pingInterval); // Cannot access pingInterval here directly
+                this.ws = null;
+
+                // Trigger state change and show modal manually
+                this.setWebSocket(null); // This will set isSpectating = true and call startSpectating (which is fine for now)
+                usernameInput.disabled = false;
+                usernameModal.classList.remove('hidden');
+                usernameInput.focus();
+                // Update button state (relying on main.js state)
+                // startGameButton.disabled = !selectedServerInfo || !!validateUsername(usernameInput.value);
+            }
+            event.preventDefault(); // Prevent any default browser behavior for Escape
         }
-
-        // --- Client-Side Prediction ---
-        // Check if the requested direction is valid based on the *current* server direction (or predicted if needed)
-        const currentServerDirection = mySnake.direction; // Use the last known server direction
-        let isValidMove = false;
-        if (
-            (requestedDirection === 'up' && currentServerDirection !== 'down') ||
-            (requestedDirection === 'down' && currentServerDirection !== 'up') ||
-            (requestedDirection === 'left' && currentServerDirection !== 'right') ||
-            (requestedDirection === 'right' && currentServerDirection !== 'left')
-        ) {
-            isValidMove = true;
-        }
-
-        if (isValidMove) {
-            this.predictedDirection = requestedDirection; // Update predicted direction immediately
-            // Send the direction change to the server
-            this.ws.send(JSON.stringify({ type: 'directionChange', payload: requestedDirection }));
-        }
-        // --- End Prediction ---
-
-        event.preventDefault(); // Prevent default browser action (scrolling)
     }
 
     // --- Spectator Mode ---
